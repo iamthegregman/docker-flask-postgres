@@ -4,6 +4,8 @@ import traceback
 from flask import Flask, render_template, flash, redirect, request, url_for
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy import exc
+from sqlalchemy import text
+from datetime import datetime
 
 DBUSER = 'marco'
 DBPASS = 'foobarbaz'
@@ -24,6 +26,53 @@ app.secret_key = 'foobarbaz'
 
 db = SQLAlchemy(app)
 
+# Define models directly in app.py since you're importing them here
+class Supplies(db.Model):
+    __tablename__ = 'rdb_v3_tbl_supplies'
+    
+    supply_id = db.Column(db.Integer, primary_key=True)
+    supply_name = db.Column(db.String(250))
+    manufacturer = db.Column(db.String(50))
+    product = db.Column(db.String(50))
+    cas = db.Column(db.String(255))
+    type = db.Column(db.String(50))
+    grade = db.Column(db.String(50))
+    purity_quant = db.Column(db.String(50))
+    storage_temp = db.Column(db.String(50))
+    stability = db.Column(db.String(50))
+    comment = db.Column(db.String(250))
+    min_stock = db.Column(db.Integer)
+    supply_current_stock = db.Column(db.Integer)
+    one_shot = db.Column(db.Boolean)
+    
+    # Relationship with lots
+    lots = db.relationship('SuppliesLots', backref='supply', lazy=True)
+    
+    def __repr__(self):
+        return f'<Supply {self.supply_name}>'
+
+class SuppliesLots(db.Model):
+    __tablename__ = 'rdb_v3_tbl_supplies_lots'
+    
+    supply_lot_id = db.Column(db.Integer, primary_key=True)
+    supply_id = db.Column(db.Integer, db.ForeignKey('rdb_v3_tbl_supplies.supply_id'))
+    lot_no = db.Column(db.String(50))
+    barcode_s = db.Column(db.String(255))
+    quant = db.Column(db.String(50))
+    condition = db.Column(db.Boolean)
+    use_by_date = db.Column(db.Date)
+    rec_date = db.Column(db.Date)
+    open_date = db.Column(db.Date)
+    disc_date = db.Column(db.Date)
+    comment = db.Column(db.String(250))
+    accept = db.Column(db.Integer)
+    entered_by = db.Column(db.Integer)
+    location = db.Column(db.Integer)
+    
+    def __repr__(self):
+        return f'<SupplyLot {self.lot_no}>'
+
+# Keep the students model for backward compatibility
 class students(db.Model):
     id = db.Column('student_id', db.Integer, primary_key=True)
     name = db.Column(db.String(100))
@@ -41,7 +90,7 @@ def database_initialization_sequence():
             db.create_all()
             print("Database tables created successfully")
             
-            # Check if test record already exists
+            # Original student initialization kept for compatibility
             existing = students.query.filter_by(name='John Doe').first()
             if not existing:
                 test_rec = students(
@@ -60,7 +109,37 @@ def database_initialization_sequence():
         with app.app_context():
             db.session.rollback()
 
-@app.route('/', methods=['GET', 'POST'])
+@app.route('/')
+def index():
+    return redirect(url_for('supplies'))
+
+@app.route('/supplies')
+def supplies():
+    try:
+        supplies_list = Supplies.query.order_by(Supplies.supply_name).all()
+        return render_template('supplies.html', supplies=supplies_list)
+    except Exception as e:
+        error_msg = "ERROR retrieving supplies: {}".format(e)
+        print(error_msg)
+        print(traceback.format_exc())
+        flash(error_msg, 'error')
+        return render_template('supplies.html', supplies=[], error=error_msg)
+
+@app.route('/supply/<int:supply_id>')
+def supply_detail(supply_id):
+    try:
+        supply = Supplies.query.get_or_404(supply_id)
+        lots = SuppliesLots.query.filter_by(supply_id=supply_id).all()
+        return render_template('supply_detail.html', supply=supply, lots=lots)
+    except Exception as e:
+        error_msg = "ERROR retrieving supply details: {}".format(e)
+        print(error_msg)
+        print(traceback.format_exc())
+        flash(error_msg, 'error')
+        return redirect(url_for('supplies'))
+
+# Legacy route preserved for compatibility
+@app.route('/students', methods=['GET', 'POST'])
 def home():
     if request.method == 'POST':
         if not request.form['name'] or not request.form['city'] or not request.form['addr']:
