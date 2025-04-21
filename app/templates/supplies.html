@@ -45,6 +45,7 @@
         </div>
 
         <div class="row mb-3">
+            <!-- Search box column (takes up half the width) -->
             <div class="col-md-6">
                 <div class="input-group">
                     <input type="text" class="form-control" id="searchInput" placeholder="Search supplies...">
@@ -53,14 +54,15 @@
                     </button>
                 </div>
             </div>
-            <div class="col-md-6 text-end">
-                <div class="btn-group">
-                    <button class="btn btn-outline-primary">
-                        <i class="bi bi-filter"></i> Filter
-                    </button>
-                    <button class="btn btn-outline-primary">
-                        <i class="bi bi-sort-alpha-down"></i> Sort
-                    </button>
+            
+            <!-- Barcode scan column (takes up half the width) -->
+            <div class="col-md-6">
+                <div class="input-group" style="background-color: #e6f2ff; padding: 5px; border-radius: 5px;">
+                    <span class="input-group-text">
+                        <i class="bi bi-upc-scan"></i>
+                    </span>
+                    <input type="text" class="form-control" id="barcodeInput" placeholder="Scan barcode...">
+                    <button class="btn btn-primary" type="button">Find</button>
                 </div>
             </div>
         </div>
@@ -96,9 +98,6 @@
                                 <td>
                                     <button class="btn btn-sm btn-outline-primary">
                                         <i class="bi bi-pencil"></i>
-                                    </button>
-                                    <button class="btn btn-sm btn-outline-danger">
-                                        <i class="bi bi-trash"></i>
                                     </button>
                                 </td>
                             </tr>

@@ -1,0 +1,433 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Bootstrap Elements Reference</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+</head>
+<body>
+    <div class="container mt-5">
+        <h1>Bootstrap Elements Reference</h1>
+        <p class="lead">A guide to common Bootstrap components</p>
+        
+        <div class="alert alert-primary mt-4">
+            This is a test alert to verify Bootstrap is working
+        </div>
+        
+        <button class="btn btn-primary">Test Button</button>
+    </div>
+    
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+
+<!-- BADGES SECTION -->
+<section id="badges" class="demo-section mt-5">
+    <h2>Badges & Status Indicators</h2>
+    <p>Useful for displaying statuses, counts, and other small pieces of information.</p>
+    
+    <h4 class="mt-4">Basic Badges</h4>
+    <div class="row mb-3">
+        <div class="col">
+            <h5>Regular Badges <span class="badge bg-secondary">New</span></h5>
+            <span class="badge bg-secondary">Acceptance: Not Tested</span>
+            <span class="badge bg-warning text-dark">Acceptance: In Testing</span>
+            <span class="badge bg-info text-dark">Acceptance: Pending</span>
+            <span class="badge bg-success">Acceptance: Accepted</span>
+            <span class="badge bg-danger">Acceptance: Failed</span>
+            <span class="badge bg-primary">Acceptance: See Details</span>
+            <span class="badge bg-light text-dark">Acceptance: N/A</span>
+            <span class="badge bg-dark">Dark</span>
+        </div>
+    </div>
+    
+    <div class="bg-light p-3 rounded">
+        <pre class="mb-0"><code>&lt;span class="badge bg-primary"&gt;Primary&lt;/span&gt;
+                                &lt;span class="badge bg-success"&gt;Success&lt;/span&gt;
+                                &lt;span class="badge bg-danger"&gt;Danger&lt;/span&gt;</code></pre>
+    </div>
+</section>
+
+</section>
+    <h4 class="element-title">Pill Badges</h4>
+    <div class="row mb-3">
+        <div class="col">
+            <span class="badge rounded-pill bg-primary">In Stock</span>
+            <span class="badge rounded-pill bg-warning text-dark">Low Stock</span>
+            <span class="badge rounded-pill bg-danger">Out of Stock</span>
+            <span class="badge rounded-pill bg-info text-dark">On Order</span>
+            <span class="badge rounded-pill bg-success">Active</span>
+        </div>
+    </div>
+    <div class="code-block">&lt;span class="badge rounded-pill bg-primary"&gt;In Stock&lt;/span&gt;
+    &lt;span class="badge rounded-pill bg-warning text-dark"&gt;Low Stock&lt;/span&gt;
+    &lt;span class="badge rounded-pill bg-danger"&gt;Out of Stock&lt;/span&gt;</div>
+</section>
+
+</section>
+<h4 class="element-title">Status with Indicators</h4>
+            <div class="row mb-3">
+                <div class="col">
+                    <div class="d-flex align-items-center mb-2">
+                        <div class="spinner-grow spinner-grow-sm text-success me-2" role="status">
+                            <span class="visually-hidden">Active</span>
+                        </div>
+                        <span>Active</span>
+                    </div>
+                    <div class="d-flex align-items-center mb-2">
+                        <div class="spinner-grow spinner-grow-sm text-warning me-2" role="status">
+                            <span class="visually-hidden">Warning</span>
+                        </div>
+                        <span>Expiring Soon</span>
+                    </div>
+                    <div class="d-flex align-items-center mb-2">
+                        <div class="spinner-grow spinner-grow-sm text-danger me-2" role="status">
+                            <span class="visually-hidden">Danger</span>
+                        </div>
+                        <span>Expired</span>
+                    </div>
+                </div>
+            </div>
+            <div class="code-block">&lt;div class="d-flex align-items-center mb-2"&gt;
+    &lt;div class="spinner-grow spinner-grow-sm text-success me-2" role="status"&gt;
+        &lt;span class="visually-hidden"&gt;Active&lt;/span&gt;
+    &lt;/div&gt;
+    &lt;span&gt;Active&lt;/span&gt;
+&lt;/div&gt;</div>
+
+</section>
+        <!-- NAVIGATION SECTION -->
+        <section id="navigation" class="demo-section">
+            <h2>Navigation</h2>
+            <p>Components for navigating through your application.</p>
+            
+            <h4 class="element-title">Tabs</h4>
+            <div class="row mb-3">
+                <div class="col">
+                    <ul class="nav nav-tabs" id="myTab" role="tablist">
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link active" id="details-tab" data-bs-toggle="tab" data-bs-target="#details" type="button" role="tab" aria-controls="details" aria-selected="true">Details</button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="lots-tab" data-bs-toggle="tab" data-bs-target="#lots" type="button" role="tab" aria-controls="lots" aria-selected="false">Lots</button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="history-tab" data-bs-toggle="tab" data-bs-target="#history" type="button" role="tab" aria-controls="history" aria-selected="false">History</button>
+                        </li>
+                    </ul>
+                    <div class="tab-content p-3 border border-top-0 rounded-bottom" id="myTabContent">
+                        <div class="tab-pane fade show active" id="details" role="tabpanel" aria-labelledby="details-tab">
+                            Basic information about the reagent would go here.
+                        </div>
+                        <div class="tab-pane fade" id="lots" role="tabpanel" aria-labelledby="lots-tab">
+                            A list of lots would go here.
+                        </div>
+                        <div class="tab-pane fade" id="history" role="tabpanel" aria-labelledby="history-tab">
+                            Usage history would go here.
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="code-block">&lt;ul class="nav nav-tabs" id="myTab" role="tablist"&gt;
+    &lt;li class="nav-item" role="presentation"&gt;
+        &lt;button class="nav-link active" id="details-tab" data-bs-toggle="tab" data-bs-target="#details" type="button" role="tab" aria-controls="details" aria-selected="true"&gt;Details&lt;/button&gt;
+    &lt;/li&gt;
+    &lt;!-- more tabs --&gt;
+&lt;/ul&gt;
+&lt;div class="tab-content p-3 border border-top-0 rounded-bottom" id="myTabContent"&gt;
+    &lt;div class="tab-pane fade show active" id="details" role="tabpanel" aria-labelledby="details-tab"&gt;
+        Tab content here...
+    &lt;/div&gt;
+    &lt;!-- more panes --&gt;
+&lt;/div&gt;</div>
+</section>
+
+</section>
+            <h4 class="element-title">Pagination</h4>
+            <div class="row mb-3">
+                <div class="col">
+                    <nav aria-label="Page navigation example">
+                        <ul class="pagination">
+                            <li class="page-item disabled">
+                                <a class="page-link" href="#" tabindex="-1" aria-disabled="true">Previous</a>
+                            </li>
+                            <li class="page-item active"><a class="page-link" href="#">1</a></li>
+                            <li class="page-item"><a class="page-link" href="#">2</a></li>
+                            <li class="page-item"><a class="page-link" href="#">3</a></li>
+                            <li class="page-item">
+                                <a class="page-link" href="#">Next</a>
+                            </li>
+                        </ul>
+                    </nav>
+                </div>
+            </div>
+            <div class="code-block">&lt;nav aria-label="Page navigation example"&gt;
+        &lt;ul class="pagination"&gt;
+        &lt;li class="page-item disabled"&gt;
+        &lt;a class="page-link" href="#" tabindex="-1" aria-disabled="true"&gt;Previous&lt;/a&gt;
+        &lt;/li&gt;
+        &lt;li class="page-item active"&gt;&lt;a class="page-link" href="#"&gt;1&lt;/a&gt;&lt;/li&gt;
+        &lt;li class="page-item"&gt;&lt;a class="page-link" href="#"&gt;2&lt;/a&gt;&lt;/li&gt;
+        &lt;li class="page-item"&gt;&lt;a class="page-link" href="#"&gt;3&lt;/a&gt;&lt;/li&gt;
+        &lt;li class="page-item"&gt;
+        &lt;a class="page-link" href="#"&gt;Next&lt;/a&gt;
+        &lt;/li&gt;
+        &lt;/ul&gt;
+        &lt;/nav&gt;</div>
+</section>
+
+</section>
+            <h4 class="element-title">Breadcrumbs</h4>
+            <div class="row mb-3">
+                <div class="col">
+                    <nav aria-label="breadcrumb">
+                        <ol class="breadcrumb">
+                            <li class="breadcrumb-item"><a href="#">Home</a></li>
+                            <li class="breadcrumb-item"><a href="#">Reagents</a></li>
+                            <li class="breadcrumb-item active" aria-current="page">Tris Buffer</li>
+                        </ol>
+                    </nav>
+                </div>
+            </div>
+            <div class="code-block">&lt;nav aria-label="breadcrumb"&gt;
+        &lt;ol class="breadcrumb"&gt;
+        &lt;li class="breadcrumb-item"&gt;&lt;a href="#"&gt;Home&lt;/a&gt;&lt;/li&gt;
+        &lt;li class="breadcrumb-item"&gt;&lt;a href="#"&gt;Reagents&lt;/a&gt;&lt;/li&gt;
+        &lt;li class="breadcrumb-item active" aria-current="page"&gt;Tris Buffer&lt;/li&gt;
+        &lt;/ol&gt;
+        &lt;/nav&gt;</div>
+</section>
+ 
+</section>
+        <!-- UTILITY CLASSES SECTION -->
+        <section id="utilities" class="demo-section">
+            <h2>Utility Classes</h2>
+            <p>Helpful classes for common styling needs.</p>
+            
+            <h4 class="element-title">Spacing</h4>
+            <div class="row mb-3">
+                <div class="col">
+                    <div class="p-3 bg-light">p-3: Padding on all sides</div>
+                    <div class="mt-3 p-3 bg-light">mt-3: Margin top</div>
+                    <div class="mb-3 p-3 bg-light">mb-3: Margin bottom</div>
+                    <div class="mx-3 p-3 bg-light">mx-3: Margin left and right</div>
+                    <div class="my-3 p-3 bg-light">my-3: Margin top and bottom</div>
+                </div>
+            </div>
+            <div class="code-block">&lt;div class="p-3"&gt;Padding on all sides&lt;/div&gt;
+                                    &lt;div class="mt-3"&gt;Margin top&lt;/div&gt;
+                                    &lt;div class="mb-3"&gt;Margin bottom&lt;/div&gt;
+                                    &lt;div class="mx-3"&gt;Margin left and right&lt;/div&gt;
+                                    &lt;div class="my-3"&gt;Margin top and bottom&lt;/div&gt;</div>
+</section>
+
+</section>
+            <h4 class="element-title">Borders</h4>
+            <div class="row mb-3">
+                <div class="col">
+                    <div class="border p-3 mb-3">Regular border</div>
+                    <div class="border-top p-3 mb-3">Top border</div>
+                    <div class="border-bottom p-3 mb-3">Bottom border</div>
+                    <div class="border border-primary p-3 mb-3">Primary border</div>
+                    <div class="border border-danger p-3 mb-3">Danger border</div>
+                    <div class="border rounded p-3 mb-3">Rounded border</div>
+                    <div class="border rounded-pill p-3 mb-3">Pill border</div>
+                </div>
+            </div>
+            <div class="code-block">&lt;div class="border"&gt;Regular border&lt;/div&gt;
+&lt;div class="border-top"&gt;Top border&lt;/div&gt;
+&lt;div class="border border-primary"&gt;Primary border&lt;/div&gt;
+&lt;div class="border rounded"&gt;Rounded border&lt;/div&gt;</div>
+</section>
+
+</section>
+            <h4 class="element-title">Text Utilities</h4>
+            <div class="row mb-3">
+                <div class="col">
+                    <p class="text-primary">Primary text</p>
+                    <p class="text-secondary">Secondary text</p>
+                    <p class="text-success">Success text</p>
+                    <p class="text-danger">Danger text</p>
+                    <p class="text-warning">Warning text</p>
+                    <p class="text-info">Info text</p>
+                    <p class="text-center">Centered text</p>
+                    <p class="text-end">Right-aligned text</p>
+                    <p class="text-uppercase">Uppercase text</p>
+                    <p class="text-lowercase">Lowercase text</p>
+                    <p class="text-truncate" style="max-width: 150px;">This text will be truncated if it's too long</p>
+                </div>
+            </div>
+            <div class="code-block">&lt;p class="text-primary"&gt;Primary text&lt;/p&gt;
+&lt;p class="text-center"&gt;Centered text&lt;/p&gt;
+&lt;p class="text-uppercase"&gt;Uppercase text&lt;/p&gt;
+&lt;p class="text-truncate"&gt;Truncated text&lt;/p&gt;</div>
+</section>
+
+</section>
+            <h4 class="element-title">Flexbox</h4>
+            <div class="row mb-3">
+                <div class="col">
+                    <div class="d-flex justify-content-between mb-3 p-3 bg-light">
+                        <div>Left item</div>
+                        <div>Right item</div>
+                    </div>
+                    <div class="d-flex align-items-center mb-3 p-3 bg-light">
+                        <div class="me-3">
+                            <div style="width: 50px; height: 50px;" class="bg-primary"></div>
+                        </div>
+                        <div>
+                            <h5 class="mb-0">Vertically centered</h5>
+                            <p class="mb-0">Next to an element</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="code-block">&lt;div class="d-flex justify-content-between"&gt;
+    &lt;div&gt;Left item&lt;/div&gt;
+    &lt;div&gt;Right item&lt;/div&gt;
+&lt;/div&gt;
+
+&lt;div class="d-flex align-items-center"&gt;
+    &lt;div class="me-3"&gt;Left content&lt;/div&gt;
+    &lt;div&gt;Right content vertically aligned&lt;/div&gt;
+&lt;/div&gt;</div>
+</section>
+
+
+<!-- DATE PICKER SECTION -->
+<section id="date-picker" class="demo-section">
+    <h2>Date Pickers (Manual Integration)</h2>
+    <p>Bootstrap doesn't include date pickers by default, but you can integrate with libraries like Flatpickr or Bootstrap Datepicker.</p>
+    
+    <h4 class="element-title">Using Input Groups</h4>
+    <div class="row mb-3">
+        <div class="col-md-6">
+            <div class="input-group mb-3">
+                <span class="input-group-text"><i class="bi bi-calendar"></i></span>
+                <input type="date" class="form-control" id="example-date">
+            </div>
+            
+            <div class="input-group mb-3">
+                <span class="input-group-text"><i class="bi bi-calendar-event"></i></span>
+                <input type="text" class="form-control" placeholder="Select date" id="flatpickr-example">
+            </div>
+            
+            <p class="text-muted small">Note: For enhanced date pickers, include a library like Flatpickr or Bootstrap Datepicker.</p>
+            
+            <div class="code-block">&lt;div class="input-group mb-3"&gt;
+&lt;span class="input-group-text"&gt;&lt;i class="bi bi-calendar"&gt;&lt;/i&gt;&lt;/span&gt;
+&lt;input type="date" class="form-control" id="example-date"&gt;
+&lt;/div&gt;
+
+&lt;!-- With Flatpickr (include the library) --&gt;
+&lt;div class="input-group mb-3"&gt;
+&lt;span class="input-group-text"&gt;&lt;i class="bi bi-calendar-event"&gt;&lt;/i&gt;&lt;/span&gt;
+&lt;input type="text" class="form-control" placeholder="Select date" id="flatpickr-example"&gt;
+&lt;/div&gt;
+
+&lt;script&gt;
+// Initialize with Flatpickr (if included)
+flatpickr("#flatpickr-example", {
+dateFormat: "Y-m-d",
+// other options...
+});
+&lt;/script&gt;</div>
+        </div>
+    </div>
+</section>
+
+<!-- SEARCH SECTION -->
+<section id="search" class="demo-section">
+    <h2>Search Components</h2>
+    <p>Search inputs and filtering systems.</p>
+    
+    <h4 class="element-title">Basic Search</h4>
+    <div class="row mb-3">
+        <div class="col-md-6">
+            <div class="input-group mb-3">
+                <input type="text" class="form-control" placeholder="Search reagents..." aria-label="Search">
+                <button class="btn btn-outline-secondary" type="button">
+                    <i class="bi bi-search"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+    <div class="code-block">&lt;div class="input-group mb-3"&gt;
+&lt;input type="text" class="form-control" placeholder="Search reagents..." aria-label="Search"&gt;
+&lt;button class="btn btn-outline-secondary" type="button"&gt;
+&lt;i class="bi bi-search"&gt;&lt;/i&gt;
+&lt;/button&gt;
+&lt;/div&gt;</div>
+    
+    <h4 class="element-title">Advanced Search</h4>
+    <div class="row mb-3">
+        <div class="col">
+            <div class="card">
+                <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">Search Reagents</h5>
+                    <button class="btn btn-light btn-sm" type="button" data-bs-toggle="collapse" data-bs-target="#advancedSearch">
+                        <i class="bi bi-filter"></i> Filters
+                    </button>
+                </div>
+                <div class="card-body">
+                    <div class="input-group mb-3">
+                        <input type="text" class="form-control" placeholder="Search by name or catalog number...">
+                        <button class="btn btn-primary" type="button">
+                            <i class="bi bi-search"></i> Search
+                        </button>
+                    </div>
+                    
+                    <div class="collapse" id="advancedSearch">
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label class="form-label">Manufacturer</label>
+                                <select class="form-select">
+                                    <option value="">All Manufacturers</option>
+                                    <option>Sigma-Aldrich</option>
+                                    <option>Thermo Fisher</option>
+                                    <option>Merck</option>
+                                </select>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Type</label>
+                                <select class="form-select">
+                                    <option value="">All Types</option>
+                                    <option>Buffer</option>
+                                    <option>Chemical</option>
+                                    <option>Solvent</option>
+                                </select>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Stock Status</label>
+                                <select class="form-select">
+                                    <option value="">Any</option>
+                                    <option>In Stock</option>
+                                    <option>Low Stock</option>
+                                    <option>Out of Stock</option>
+                                </select>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Grade</label>
+                                <select class="form-select">
+                                    <option value="">All Grades</option>
+                                    <option>Analytical</option>
+                                    <option>HPLC</option>
+                                    <option>Reagent</option>
+                                </select>
+                            </div>
+                            <div class="col-12 text-end mt-3">
+                                <button class="btn btn-secondary me-2">Reset</button>
+                                <button class="btn btn-primary">Apply Filters</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+</div>
+
+
+</html>

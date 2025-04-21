@@ -137,6 +137,11 @@ def supply_detail(supply_id):
         print(traceback.format_exc())
         flash(error_msg, 'error')
         return redirect(url_for('supplies'))
+#add bootstrap elements to index
+@app.route('/bootstrap_elements')
+def bootstrap_elements():
+    return render_template('bootstrap_elements.html')
+
 
 # Legacy route preserved for compatibility
 @app.route('/students', methods=['GET', 'POST'])
