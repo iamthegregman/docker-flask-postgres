@@ -156,6 +156,20 @@
                                             <span class="badge {% if lot.condition %}bg-success{% else %}bg-danger{% endif %}">
                                                 {{ 'Active' if lot.condition else 'Inactive' }}
                                             </span>
+                                            {% if lot.acceptance_info %}
+                                                <br>
+                                                <span class="badge 
+                                                    {% if lot.accept == 1 %}bg-secondary{% endif %}
+                                                    {% if lot.accept == 2 %}bg-warning text-dark{% endif %}
+                                                    {% if lot.accept == 3 %}bg-info text-dark{% endif %}
+                                                    {% if lot.accept == 4 %}bg-success{% endif %}
+                                                    {% if lot.accept == 8 %}bg-danger{% endif %}
+                                                    {% if lot.accept == 9 %}bg-primary{% endif %}
+                                                    {% if lot.accept == 10 %}bg-light text-dark{% endif %}
+                                                    {% if lot.accept == 12 %}bg-primary{% endif %}">
+                                                    {{ lot.acceptance_info.acceptance_criteria }}
+                                                </span>
+                                            {% endif %}
                                         </td>
                                         <td>
                                             <button class="btn btn-sm btn-outline-primary">

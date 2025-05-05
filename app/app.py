@@ -65,12 +65,24 @@ class SuppliesLots(db.Model):
     open_date = db.Column(db.Date)
     disc_date = db.Column(db.Date)
     comment = db.Column(db.String(250))
-    accept = db.Column(db.Integer)
+    accept = db.Column(db.Integer, db.ForeignKey('rdb_v3_tbl_acceptance_testing.accept_code'))
     entered_by = db.Column(db.Integer)
     location = db.Column(db.Integer, db.ForeignKey('rdb_v3_tbl_locations.location_id'))
     
     def __repr__(self):
         return f'<SupplyLot {self.lot_no}>'
+
+class Acceptance(db.Model):
+    __tablename__ = 'rdb_v3_tbl_acceptance_testing'
+    
+    accept_code = db.Column(db.Integer, primary_key=True)
+    acceptance_criteria = db.Column(db.String(250))
+    
+    # Relationship with lots
+    lots = db.relationship('SuppliesLots', backref='acceptance_info', lazy=True)
+    
+    def __repr__(self):
+        return f'<Acceptance {self.acceptance_criteria}>'
 
 class Locations(db.Model):
     __tablename__ = 'rdb_v3_tbl_locations'
@@ -143,10 +155,12 @@ def supply_detail(supply_id):
         supply = Supplies.query.get_or_404(supply_id)
         lots = SuppliesLots.query.filter_by(supply_id=supply_id).all()
         locations = Locations.query.order_by(Locations.location).all()
+        acceptance_codes = Acceptance.query.all()
         return render_template('supply_detail.html', 
                               supply=supply, 
                               lots=lots,
-                              locations=locations)
+                              locations=locations,
+                              acceptance_codes=acceptance_codes)
     except Exception as e:
         error_msg = "ERROR retrieving supply details: {}".format(e)
         print(error_msg)
