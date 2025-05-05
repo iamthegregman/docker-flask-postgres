@@ -140,8 +140,20 @@ def index():
 @app.route('/supplies')
 def supplies():
     try:
-        supplies_list = Supplies.query.order_by(Supplies.supply_name).all()
-        return render_template('supplies.html', supplies=supplies_list)
+        # Get sort parameters from query string
+        sort_by = request.args.get('sort_by', 'supply_name')  # Default sort by name
+        sort_dir = request.args.get('sort_dir', 'asc')  # Default ascending
+        # Construct sort query based on parameters
+        if sort_dir == 'desc':
+            order = db.desc(getattr(Supplies, sort_by))
+        else:
+            order = db.asc(getattr(Supplies, sort_by))
+        
+        supplies_list = Supplies.query.order_by(order).all()
+        return render_template('supplies.html', 
+                              supplies=supplies_list,
+                              sort_by=sort_by,
+                              sort_dir=sort_dir)
     except Exception as e:
         error_msg = "ERROR retrieving supplies: {}".format(e)
         print(error_msg)
