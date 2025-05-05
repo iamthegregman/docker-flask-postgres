@@ -137,6 +137,7 @@
                                         <th>Quantity</th>
                                         <th>Use By Date</th>
                                         <th>Received</th>
+                                        <th>Locations</th>
                                         <th>Status</th>
                                         <th>Actions</th>
                                     </tr>
@@ -148,6 +149,9 @@
                                         <td>{{ lot.quant }}</td>
                                         <td>{{ lot.use_by_date.strftime('%d/%m/%Y') if lot.use_by_date else 'N/A' }}</td>
                                         <td>{{ lot.rec_date.strftime('%d/%m/%Y') if lot.rec_date else 'N/A' }}</td>
+                                        
+                                        <td>{{ lot.location_info.location if lot.location_info else 'Unknown' }}</td>
+                                        
                                         <td>
                                             <span class="badge {% if lot.condition %}bg-success{% else %}bg-danger{% endif %}">
                                                 {{ 'Active' if lot.condition else 'Inactive' }}

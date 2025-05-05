@@ -26,7 +26,7 @@ app.secret_key = 'foobarbaz'
 
 db = SQLAlchemy(app)
 
-# Define models directly in app.py since you're importing them here
+# Define models for SQL here (probably want to move this into a separate file at some point)
 class Supplies(db.Model):
     __tablename__ = 'rdb_v3_tbl_supplies'
     
@@ -67,10 +67,22 @@ class SuppliesLots(db.Model):
     comment = db.Column(db.String(250))
     accept = db.Column(db.Integer)
     entered_by = db.Column(db.Integer)
-    location = db.Column(db.Integer)
+    location = db.Column(db.Integer, db.ForeignKey('rdb_v3_tbl_locations.location_id'))
     
     def __repr__(self):
         return f'<SupplyLot {self.lot_no}>'
+
+class Locations(db.Model):
+    __tablename__ = 'rdb_v3_tbl_locations'
+    
+    location_id = db.Column(db.Integer, primary_key=True)
+    location = db.Column(db.String(250))
+    
+    # Relationship with lots (one location has many lots)
+    lots = db.relationship('SuppliesLots', backref='location_info', lazy=True)
+    
+    def __repr__(self):
+        return f'<Location {self.location}>'
 
 # Keep the students model for backward compatibility
 class students(db.Model):
@@ -130,14 +142,38 @@ def supply_detail(supply_id):
     try:
         supply = Supplies.query.get_or_404(supply_id)
         lots = SuppliesLots.query.filter_by(supply_id=supply_id).all()
-        return render_template('supply_detail.html', supply=supply, lots=lots)
+        locations = Locations.query.order_by(Locations.location).all()
+        return render_template('supply_detail.html', 
+                              supply=supply, 
+                              lots=lots,
+                              locations=locations)
     except Exception as e:
         error_msg = "ERROR retrieving supply details: {}".format(e)
         print(error_msg)
         print(traceback.format_exc())
         flash(error_msg, 'error')
         return redirect(url_for('supplies'))
-#add bootstrap elements to index
+
+@app.route('/locations')
+def locations():
+    try:
+        locations_list = Locations.query.order_by(Locations.location).all()
+        return render_template('locations.html', locations=locations_list)
+    except Exception as e:
+        error_msg = "ERROR retrieving locations: {}".format(e)
+        print(error_msg)
+        print(traceback.format_exc())
+        flash(error_msg, 'error')
+        return render_template('locations.html', locations=[], error=error_msg)
+
+@app.route('/location/add', methods=['GET', 'POST'])
+def add_location():
+    # For now, just redirect to locations page
+    # You can implement the full functionality later
+    flash('Location add feature coming soon!', 'info')
+    return redirect(url_for('locations'))
+
+#bootstrap elements for looking some of the elements that can be used
 @app.route('/bootstrap_elements')
 def bootstrap_elements():
     return render_template('bootstrap_elements.html')
