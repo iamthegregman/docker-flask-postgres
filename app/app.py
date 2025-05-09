@@ -26,6 +26,93 @@ app.secret_key = 'foobarbaz'
 
 db = SQLAlchemy(app)
 
+class Acceptance(db.Model):
+    __tablename__ = 'rdb_v3_tbl_acceptance_testing'
+    
+    accept_code = db.Column(db.Integer, primary_key=True)
+    acceptance_criteria = db.Column(db.String(250))
+    
+    # Relationship with lots
+    lots = db.relationship('SuppliesLots', backref='acceptance_info', lazy=True)
+    
+    def __repr__(self):
+        return f'<Acceptance {self.acceptance_criteria}>'
+
+class Locations(db.Model):
+    __tablename__ = 'rdb_v3_tbl_locations'
+    
+    location_id = db.Column(db.Integer, primary_key=True)
+    location = db.Column(db.String(250))
+    
+    # Relationship with lots (one location has many lots)
+    lots = db.relationship('SuppliesLots', backref='location_info', lazy=True)
+    
+    def __repr__(self):
+        return f'<Location {self.location}>'
+
+# Reagent Type Model
+class ReagentType(db.Model):
+    __tablename__ = 'rdb_v3_tbl_reagent_types'
+    
+    reagent_type_id = db.Column(db.Integer, primary_key=True)
+    reagent_type = db.Column(db.String(255))
+    
+    def __repr__(self):
+        return f'<ReagentType {self.reagent_type}>'
+
+# Reagent Model
+class Reagent(db.Model):
+    __tablename__ = 'rdb_v3_tbl_reagents'
+    
+    reagent_id = db.Column(db.Integer, primary_key=True)
+    test_id = db.Column(db.String(255))
+    reagent_name = db.Column(db.String(255))
+    stability = db.Column(db.Integer)
+    disc = db.Column(db.Boolean)
+    entered_by = db.Column(db.Integer, db.ForeignKey('rdb_v3_tbl_users.user_id'))
+    location = db.Column(db.Integer, db.ForeignKey('rdb_v3_tbl_locations.location_id'))
+    min_stock = db.Column(db.Integer)
+    current_stock = db.Column(db.Integer)
+    cs_deplete = db.Column(db.Boolean)
+    mandatory = db.Column(db.Boolean)
+    reagent_type = db.Column(db.Integer, db.ForeignKey('rdb_v3_tbl_reagent_types.reagent_type_id'))
+    
+    # Relationships
+    lots = db.relationship('ReagentLot', backref='reagent', lazy=True)
+    location_info = db.relationship('Locations', foreign_keys=[location])
+    reagent_type_info = db.relationship('ReagentType', foreign_keys=[reagent_type])
+
+    def __repr__(self):
+        return f'<Reagent {self.reagent_name}>'
+
+# Reagent Lot Model
+class ReagentLot(db.Model):
+    __tablename__ = 'rdb_v3_tbl_reagent_lots'
+    
+    reagent_lot_id = db.Column(db.Integer, primary_key=True)
+    reagent_id = db.Column(db.Integer, db.ForeignKey('rdb_v3_tbl_reagents.reagent_id'))
+    prep_rec_date = db.Column(db.Date)
+    prep_user = db.Column(db.Integer, db.ForeignKey('rdb_v3_tbl_users.user_id'))
+    lot_no = db.Column(db.String(50))
+    barcode_r = db.Column(db.String(255))
+    exp_date = db.Column(db.Date)
+    in_use_from_date = db.Column(db.Date)
+    in_use_to_date = db.Column(db.Date)
+    disc_date = db.Column(db.Date)
+    comment = db.Column(db.String(255))
+    tested_date = db.Column(db.Date)
+    acceptance = db.Column(db.Integer, db.ForeignKey('rdb_v3_tbl_acceptance_testing.accept_code'))
+    accept_user = db.Column(db.Integer, db.ForeignKey('rdb_v3_tbl_users.user_id'))
+    remedial = db.Column(db.String(255))
+    
+    # Relationships
+    acceptance_info = db.relationship('Acceptance', backref='reagent_lots', lazy=True)
+    prep_user_info = db.relationship('Users', foreign_keys=[prep_user], backref='prepared_reagent_lots', lazy=True)
+    accept_user_info = db.relationship('Users', foreign_keys=[accept_user], backref='accepted_reagent_lots', lazy=True)
+    
+    def __repr__(self):
+        return f'<ReagentLot {self.lot_no}>'
+
 # Define models for SQL here (probably want to move this into a separate file at some point)
 class Supplies(db.Model):
     __tablename__ = 'rdb_v3_tbl_supplies'
@@ -72,29 +159,16 @@ class SuppliesLots(db.Model):
     def __repr__(self):
         return f'<SupplyLot {self.lot_no}>'
 
-class Acceptance(db.Model):
-    __tablename__ = 'rdb_v3_tbl_acceptance_testing'
+# Users Model (placeholder - adjust based on your actual users table structure)
+class Users(db.Model):
+    __tablename__ = 'rdb_v3_tbl_users'
     
-    accept_code = db.Column(db.Integer, primary_key=True)
-    acceptance_criteria = db.Column(db.String(250))
-    
-    # Relationship with lots
-    lots = db.relationship('SuppliesLots', backref='acceptance_info', lazy=True)
-    
-    def __repr__(self):
-        return f'<Acceptance {self.acceptance_criteria}>'
-
-class Locations(db.Model):
-    __tablename__ = 'rdb_v3_tbl_locations'
-    
-    location_id = db.Column(db.Integer, primary_key=True)
-    location = db.Column(db.String(250))
-    
-    # Relationship with lots (one location has many lots)
-    lots = db.relationship('SuppliesLots', backref='location_info', lazy=True)
+    user_id = db.Column(db.Integer, primary_key=True)
+    username = db.Column(db.String(50))
+    # Add other fields as needed
     
     def __repr__(self):
-        return f'<Location {self.location}>'
+        return f'<User {self.username}>'
 
 # Keep the students model for backward compatibility
 class students(db.Model):
@@ -136,6 +210,67 @@ def database_initialization_sequence():
 @app.route('/')
 def index():
     return redirect(url_for('supplies'))
+
+@app.route('/reagents')
+def reagents():
+    try:
+        # Get sort parameters from query string (similar to supplies)
+        sort_by = request.args.get('sort_by', 'reagent_name')
+        sort_dir = request.args.get('sort_dir', 'asc')
+        
+        if sort_dir == 'desc':
+            order = db.desc(getattr(Reagent, sort_by))
+        else:
+            order = db.asc(getattr(Reagent, sort_by))
+        
+        reagents_list = Reagent.query.order_by(order).all()
+        return render_template('reagents.html', 
+                              reagents=reagents_list,
+                              sort_by=sort_by,
+                              sort_dir=sort_dir)
+    except Exception as e:
+        error_msg = "ERROR retrieving reagents: {}".format(e)
+        print(error_msg)
+        print(traceback.format_exc())
+        flash(error_msg, 'error')
+        return render_template('reagents.html', reagents=[], error=error_msg)
+
+@app.route('/reagent/<int:reagent_id>')
+def reagent_detail(reagent_id):
+    try:
+        reagent = Reagent.query.get_or_404(reagent_id)
+        lots = ReagentLot.query.filter_by(reagent_id=reagent_id).all()
+        locations = Locations.query.order_by(Locations.location).all()
+        reagent_types = ReagentType.query.order_by(ReagentType.reagent_type).all()
+        acceptance_codes = Acceptance.query.all()
+
+        now = datetime.now().date()
+        
+        return render_template('reagent_detail.html', 
+                              reagent=reagent, 
+                              lots=lots,
+                              locations=locations,
+                              reagent_types=reagent_types,
+                              acceptance_codes=acceptance_codes,
+                              now=now)
+    except Exception as e:
+        error_msg = "ERROR retrieving reagent details: {}".format(e)
+        print(error_msg)
+        print(traceback.format_exc())
+        flash(error_msg, 'error')
+        return redirect(url_for('reagents'))
+
+@app.route('/reagent_types')
+def reagent_types():
+    try:
+        types_list = ReagentType.query.order_by(ReagentType.reagent_type).all()
+        return render_template('reagent_types.html', types=types_list)
+    except Exception as e:
+        error_msg = "ERROR retrieving reagent types: {}".format(e)
+        print(error_msg)
+        print(traceback.format_exc())
+        flash(error_msg, 'error')
+        return render_template('reagent_types.html', types=[], error=error_msg)
 
 @app.route('/supplies')
 def supplies():
