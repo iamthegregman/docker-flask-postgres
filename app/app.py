@@ -32,9 +32,6 @@ class Acceptance(db.Model):
     accept_code = db.Column(db.Integer, primary_key=True)
     acceptance_criteria = db.Column(db.String(250))
     
-    # Relationship with lots
-    lots = db.relationship('SuppliesLots', backref='acceptance_info', lazy=True)
-    
     def __repr__(self):
         return f'<Acceptance {self.acceptance_criteria}>'
 
@@ -43,9 +40,6 @@ class Locations(db.Model):
     
     location_id = db.Column(db.Integer, primary_key=True)
     location = db.Column(db.String(250))
-    
-    # Relationship with lots (one location has many lots)
-    lots = db.relationship('SuppliesLots', backref='location_info', lazy=True)
     
     def __repr__(self):
         return f'<Location {self.location}>'
@@ -153,13 +147,13 @@ class SuppliesLots(db.Model):
     disc_date = db.Column(db.Date)
     comment = db.Column(db.String(250))
     accept = db.Column(db.Integer, db.ForeignKey('rdb_v3_tbl_acceptance_testing.accept_code'))
-    entered_by = db.Column(db.Integer)
+    entered_by = db.Column(db.Integer, db.ForeignKey('rdb_v3_tbl_users.user_id'))
     location = db.Column(db.Integer, db.ForeignKey('rdb_v3_tbl_locations.location_id'))
 
     # Relationships
-    #acceptance_info = db.relationship('Acceptance', backref='supply_lots', lazy=True)
-    #location_info = db.relationship('Locations', backref='supply_lots', lazy=True)
-    #entered_by_user = db.relationship('Users', backref='entered_supply_lots', lazy=True)
+    acceptance_info = db.relationship('Acceptance', backref='supplies_lots', lazy=True)
+    location_info = db.relationship('Locations', backref='supplies_lots', lazy=True) 
+    entered_by_user = db.relationship('Users', backref='entered_supplies_lots', lazy=True)
     
     def __repr__(self):
         return f'<SupplyLot {self.lot_no}>'
