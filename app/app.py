@@ -70,7 +70,6 @@ class Reagent(db.Model):
     stability = db.Column(db.Integer)
     disc = db.Column(db.Boolean)
     entered_by = db.Column(db.Integer, db.ForeignKey('rdb_v3_tbl_users.user_id'))
-    location = db.Column(db.Integer, db.ForeignKey('rdb_v3_tbl_locations.location_id'))
     min_stock = db.Column(db.Integer)
     current_stock = db.Column(db.Integer)
     cs_deplete = db.Column(db.Boolean)
@@ -79,7 +78,6 @@ class Reagent(db.Model):
     
     # Relationships
     lots = db.relationship('ReagentLot', backref='reagent', lazy=True)
-    location_info = db.relationship('Locations', foreign_keys=[location])
     reagent_type_info = db.relationship('ReagentType', foreign_keys=[reagent_type])
 
     def __repr__(self):
@@ -104,12 +102,14 @@ class ReagentLot(db.Model):
     acceptance = db.Column(db.Integer, db.ForeignKey('rdb_v3_tbl_acceptance_testing.accept_code'))
     accept_user = db.Column(db.Integer, db.ForeignKey('rdb_v3_tbl_users.user_id'))
     remedial = db.Column(db.String(255))
+    location = db.Column(db.Integer, db.ForeignKey('rdb_v3_tbl_locations.location_id'))
     
     # Relationships
     acceptance_info = db.relationship('Acceptance', backref='reagent_lots', lazy=True)
     prep_user_info = db.relationship('Users', foreign_keys=[prep_user], backref='prepared_reagent_lots', lazy=True)
     accept_user_info = db.relationship('Users', foreign_keys=[accept_user], backref='accepted_reagent_lots', lazy=True)
-    
+    location_info = db.relationship('Locations', backref='reagent_lots', lazy=True)
+
     def __repr__(self):
         return f'<ReagentLot {self.lot_no}>'
 
@@ -155,6 +155,11 @@ class SuppliesLots(db.Model):
     accept = db.Column(db.Integer, db.ForeignKey('rdb_v3_tbl_acceptance_testing.accept_code'))
     entered_by = db.Column(db.Integer)
     location = db.Column(db.Integer, db.ForeignKey('rdb_v3_tbl_locations.location_id'))
+
+    # Relationships
+    #acceptance_info = db.relationship('Acceptance', backref='supply_lots', lazy=True)
+    #location_info = db.relationship('Locations', backref='supply_lots', lazy=True)
+    #entered_by_user = db.relationship('Users', backref='entered_supply_lots', lazy=True)
     
     def __repr__(self):
         return f'<SupplyLot {self.lot_no}>'
@@ -239,7 +244,7 @@ def reagents():
 def reagent_detail(reagent_id):
     try:
         reagent = Reagent.query.get_or_404(reagent_id)
-        lots = ReagentLot.query.filter_by(reagent_id=reagent_id).all()
+        lots = ReagentLot.query.filter_by(reagent_id=reagent_id).order_by(ReagentLot.reagent_lot_id.desc()).all()
         locations = Locations.query.order_by(Locations.location).all()
         reagent_types = ReagentType.query.order_by(ReagentType.reagent_type).all()
         acceptance_codes = Acceptance.query.all()
@@ -300,7 +305,7 @@ def supplies():
 def supply_detail(supply_id):
     try:
         supply = Supplies.query.get_or_404(supply_id)
-        lots = SuppliesLots.query.filter_by(supply_id=supply_id).all()
+        lots = SuppliesLots.query.filter_by(supply_id=supply_id).order_by(SuppliesLots.supply_lot_id.desc()).all()
         locations = Locations.query.order_by(Locations.location).all()
         acceptance_codes = Acceptance.query.all()
         return render_template('supply_detail.html', 

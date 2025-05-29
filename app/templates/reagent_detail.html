@@ -75,12 +75,6 @@
                             </div>
                         </div>
                         <div class="mb-3 row">
-                            <label class="col-sm-4 col-form-label fw-bold">Location:</label>
-                            <div class="col-sm-8">
-                                <p class="form-control-plaintext">{{ reagent.location_info.location if reagent.location_info else 'N/A' }}</p>
-                            </div>
-                        </div>
-                        <div class="mb-3 row">
                             <label class="col-sm-4 col-form-label fw-bold">Current Stock:</label>
                             <div class="col-sm-8">
                                 <p class="form-control-plaintext">{{ reagent.current_stock or 0 }}</p>
@@ -120,6 +114,31 @@
             </div>
 
             <div class="col-md-7">
+                <!-- Moved details panel to the top -->
+                <div class="card mb-4 d-none" id="lotDetailsCard">
+                    <div class="card-header bg-primary bg-opacity-50 text-white">
+                        <h5 class="mb-0">Reagent Lot Further Details</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="table-responsive">
+                            <table class="table table-bordered">
+                                <tbody id="lotDetailsContent">
+                                    <!-- This will be filled by JavaScript when a lot is clicked -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    <div class="card-footer">
+                        <button class="btn btn-secondary" id="backToLotsBtn">
+                            <i class="bi bi-arrow-left"></i> Back to Normal View
+                        </button>
+                        <button class="btn btn-primary">
+                            <i class="bi bi-pencil"></i> Edit Lot
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Reagent lots table below the details panel -->
                 <div class="card" id="lotsCard">
                     <div class="card-header bg-primary bg-opacity-75 text-white d-flex justify-content-between align-items-center">
                         <h5 class="mb-0">Reagent Lots</h5>
@@ -135,6 +154,7 @@
                                         <th>Lot No</th>
                                         <th>Preparation Date</th>
                                         <th>Expiration Date</th>
+                                        <th>Location</th>
                                         <th>Acceptance</th>
                                         <th>Status</th>
                                         <th>Actions</th>
@@ -146,6 +166,7 @@
                                         <td>{{ lot.lot_no }}</td>
                                         <td>{{ lot.prep_rec_date.strftime('%d/%m/%Y') if lot.prep_rec_date else 'N/A' }}</td>
                                         <td>{{ lot.exp_date.strftime('%d/%m/%Y') if lot.exp_date else 'N/A' }}</td>
+                                        <td>{{ lot.location_info.location if lot.location_info else 'Unknown' }}</td>
                                         <td>
                                             {% if lot.acceptance_info %}
                                                 <span class="badge 
@@ -186,36 +207,12 @@
                                     {% endfor %}
                                     {% if not lots %}
                                     <tr>
-                                        <td colspan="6" class="text-center">No lots available</td>
+                                        <td colspan="7" class="text-center">No lots available</td>
                                     </tr>
                                     {% endif %}
                                 </tbody>
                             </table>
                         </div>
-                    </div>
-                </div>
-
-                <!-- New details panel that appears when a lot is clicked -->
-                <div class="card mt-4 d-none" id="lotDetailsCard">
-                    <div class="card-header bg-primary bg-opacity-50 text-white">
-                        <h5 class="mb-0">Reagent Lot Further Details</h5>
-                    </div>
-                    <div class="card-body">
-                        <div class="table-responsive">
-                            <table class="table table-bordered">
-                                <tbody id="lotDetailsContent">
-                                    <!-- This will be filled by JavaScript when a lot is clicked -->
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
-                    <div class="card-footer">
-                        <button class="btn btn-secondary" id="backToLotsBtn">
-                            <i class="bi bi-arrow-left"></i> Back to Normal View
-                        </button>
-                        <button class="btn btn-primary">
-                            <i class="bi bi-pencil"></i> Edit Lot
-                        </button>
                     </div>
                 </div>
             </div>
@@ -226,26 +223,27 @@
     <script>
         // Store lot data for JavaScript access
         const lotsData = {
-        {% for lot in lots %}
-        "{{ lot.reagent_lot_id }}": {
-            "reagent_lot_id": "{{ lot.reagent_lot_id }}",
-            "reagent_id": "{{ lot.reagent_id }}",
-            "lot_no": "{{ lot.lot_no }}",
-            "barcode_r": "{{ lot.barcode_r or '' }}",
-            "prep_rec_date": "{{ lot.prep_rec_date.strftime('%d/%m/%Y') if lot.prep_rec_date else 'N/A' }}",
-            "prep_user": "{{ lot.prep_user }}",  // Just show the ID instead of trying to access username
-            "exp_date": "{{ lot.exp_date.strftime('%d/%m/%Y') if lot.exp_date else 'N/A' }}",
-            "in_use_from_date": "{{ lot.in_use_from_date.strftime('%d/%m/%Y') if lot.in_use_from_date else 'N/A' }}",
-            "in_use_to_date": "{{ lot.in_use_to_date.strftime('%d/%m/%Y') if lot.in_use_to_date else 'N/A' }}",
-            "disc_date": "{{ lot.disc_date.strftime('%d/%m/%Y') if lot.disc_date else 'N/A' }}",
-            "comment": "{{ lot.comment or '' }}",
-            "tested_date": "{{ lot.tested_date.strftime('%d/%m/%Y') if lot.tested_date else 'N/A' }}",
-            "acceptance": "{{ lot.acceptance_info.acceptance_criteria if lot.acceptance_info else 'N/A' }}",
-            "accept_user": "{{ lot.accept_user }}", // Just show the ID instead of trying to access username
-            "remedial": "{{ lot.remedial or '' }}"
-        }{% if not loop.last %},{% endif %}
-        {% endfor %}
-    };
+            {% for lot in lots %}
+            "{{ lot.reagent_lot_id }}": {
+                "reagent_lot_id": "{{ lot.reagent_lot_id }}",
+                "reagent_id": "{{ lot.reagent_id }}",
+                "lot_no": "{{ lot.lot_no }}",
+                "barcode_r": "{{ lot.barcode_r or '' }}",
+                "prep_rec_date": "{{ lot.prep_rec_date.strftime('%d/%m/%Y') if lot.prep_rec_date else 'N/A' }}",
+                "prep_user": "{{ lot.prep_user_info.username if lot.prep_user_info else 'Unknown' }}",
+                "exp_date": "{{ lot.exp_date.strftime('%d/%m/%Y') if lot.exp_date else 'N/A' }}",
+                "in_use_from_date": "{{ lot.in_use_from_date.strftime('%d/%m/%Y') if lot.in_use_from_date else 'N/A' }}",
+                "in_use_to_date": "{{ lot.in_use_to_date.strftime('%d/%m/%Y') if lot.in_use_to_date else 'N/A' }}",
+                "disc_date": "{{ lot.disc_date.strftime('%d/%m/%Y') if lot.disc_date else 'N/A' }}",
+                "comment": "{{ lot.comment or '' }}",
+                "tested_date": "{{ lot.tested_date.strftime('%d/%m/%Y') if lot.tested_date else 'N/A' }}",
+                "acceptance": "{{ lot.acceptance_info.acceptance_criteria if lot.acceptance_info else 'N/A' }}",
+                "accept_user": "{{ lot.accept_user_info.username if lot.accept_user_info else 'Unknown' }}",
+                "remedial": "{{ lot.remedial or '' }}",
+                "location": "{{ lot.location_info.location if lot.location_info else 'Unknown' }}"
+            }{% if not loop.last %},{% endif %}
+            {% endfor %}
+        };
 
         // Set up event listeners for lot rows
         document.querySelectorAll('.view-details-btn').forEach(button => {
@@ -262,9 +260,12 @@
                 });
                 row.classList.add('selected-row');
                 
-                // Show the details panel
+                // Show the details panel at the top
                 const lotDetailsCard = document.getElementById('lotDetailsCard');
                 lotDetailsCard.classList.remove('d-none');
+                
+                // Scroll the details panel into view smoothly
+                lotDetailsCard.scrollIntoView({ behavior: 'smooth', block: 'start' });
                 
                 // Fill the details panel with the lot data
                 const lotData = lotsData[lotId];
