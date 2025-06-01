@@ -164,36 +164,11 @@ class Users(db.Model):
     def __repr__(self):
         return f'<User {self.username}>'
 
-# Keep the students model for backward compatibility
-class students(db.Model):
-    id = db.Column('student_id', db.Integer, primary_key=True)
-    name = db.Column(db.String(100))
-    city = db.Column(db.String(50))
-    addr = db.Column(db.String(200))
-
-    def __init__(self, name, city, addr):
-        self.name = name
-        self.city = city
-        self.addr = addr
-
 def database_initialization_sequence():
     try:
         with app.app_context():
             db.create_all()
             print("Database tables created successfully")
-            
-            # Original student initialization kept for compatibility
-            existing = students.query.filter_by(name='John Doe').first()
-            if not existing:
-                test_rec = students(
-                        'John Doe',
-                        'Los Angeles',
-                        '123 Foobar Ave')
-                db.session.add(test_rec)
-                db.session.commit()
-                print("Test record added successfully")
-            else:
-                print("Test record already exists, skipping")
                 
     except Exception as e:
         print("ERROR in database_initialization_sequence: {}".format(e))
@@ -332,33 +307,6 @@ def add_location():
 @app.route('/bootstrap_elements')
 def bootstrap_elements():
     return render_template('bootstrap_elements.html')
-
-
-# Legacy route preserved for compatibility
-@app.route('/students', methods=['GET', 'POST'])
-def home():
-    if request.method == 'POST':
-        if not request.form['name'] or not request.form['city'] or not request.form['addr']:
-            flash('Please enter all the fields', 'error')
-        else:
-            student = students(
-                    request.form['name'],
-                    request.form['city'],
-                    request.form['addr'])
-
-            db.session.add(student)
-            db.session.commit()
-            flash('Record was succesfully added')
-            return redirect(url_for('home'))
-    
-    try:
-        all_students = students.query.all()
-        return render_template('show_all.html', students=all_students)
-    except Exception as e:
-        error_msg = "ERROR retrieving students: {}".format(e)
-        print(error_msg)
-        flash(error_msg, 'error')
-        return render_template('show_all.html', students=[], error=error_msg)
 
 def test_db_connection():
     """Test database connection and print diagnostic information"""
