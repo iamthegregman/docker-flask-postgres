@@ -13,6 +13,10 @@ RUN pip install --upgrade pip setuptools && \
 # Copy application code
 COPY ./app /home/app/
 
+# Copy .env file from root to container
+COPY ./.env /home/app/.env
+
+
 EXPOSE 5000
 
 ENTRYPOINT ["python3", "app.py"]
