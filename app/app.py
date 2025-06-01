@@ -1,5 +1,6 @@
 import time
 import sys
+import os
 import traceback
 from flask import Flask, render_template, flash, redirect, request, url_for
 from flask_sqlalchemy import SQLAlchemy
@@ -7,24 +8,18 @@ from sqlalchemy import exc
 from sqlalchemy import text
 from datetime import datetime
 
-DBUSER = 'marco'
-DBPASS = 'foobarbaz'
-DBHOST = 'db'
-DBPORT = '5432'
-DBNAME = 'testdb'
+# Import configuration
+from config import config
+
+# Determine which config to use based on environment
+config_name = os.getenv('FLASK_ENV', 'development')
+app_config = config.get(config_name, config['default'])
 
 app = Flask(__name__)
-app.config['SQLALCHEMY_DATABASE_URI'] = \
-    'postgresql+psycopg2://{user}:{passwd}@{host}:{port}/{db}'.format(
-        user=DBUSER,
-        passwd=DBPASS,
-        host=DBHOST,
-        port=DBPORT,
-        db=DBNAME)
-app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-app.secret_key = 'foobarbaz'
+app.config.from_object(app_config)
 
 db = SQLAlchemy(app)
+
 
 class Acceptance(db.Model):
     __tablename__ = 'rdb_v3_tbl_acceptance_testing'
@@ -368,9 +363,9 @@ def home():
 def test_db_connection():
     """Test database connection and print diagnostic information"""
     print("\n=== DATABASE CONNECTION TEST ===")
-    print("Attempting to connect to: {}:{}".format(DBHOST, DBPORT))
-    print("Database: {}".format(DBNAME))
-    print("Username: {}".format(DBUSER))
+    print(f"Attempting to connect to: {app_config.DBHOST}:{app_config.DBPORT}")
+    print(f"Database: {app_config.DBNAME}")
+    print(f"Username: {app_config.DBUSER}")
     
     try:
         # Test raw connection
@@ -383,7 +378,7 @@ def test_db_connection():
         # Get PostgreSQL version (with application context)
         with app.app_context():
             result = db.session.execute(text("SELECT version();")).fetchone()
-            print("PostgreSQL Version: {}".format(result[0]))
+            print(f"PostgreSQL Version: {result[0]}")
             
             # Test table creation
             db.create_all()
@@ -407,6 +402,8 @@ def test_db_connection():
         
 if __name__ == '__main__':
     print("\n=== STARTING APPLICATION ===")
+    print(f"Environment: {config_name}")
+    print(f"Debug mode: {app.config['DEBUG']}")
     
     # Multiple connection attempts with detailed error reporting
     dbstatus = False
@@ -414,19 +411,18 @@ if __name__ == '__main__':
     max_retries = 5
     
     while dbstatus == False and retries < max_retries:
-        print("\nAttempt {}/{} to connect to database...".format(retries+1, max_retries))
+        print(f"\nAttempt {retries+1}/{max_retries} to connect to database...")
         try:
-            # Test connection more thoroughly
             dbstatus = test_db_connection()
             if not dbstatus:
                 raise Exception("Connection test failed")
                 
         except Exception as e:
             retries += 1
-            print("ERROR connecting to database: {}".format(e))
+            print(f"ERROR connecting to database: {e}")
             if retries < max_retries:
                 wait_time = 5
-                print("Waiting {} seconds before retrying...".format(wait_time))
+                print(f"Waiting {wait_time} seconds before retrying...")
                 time.sleep(wait_time)
             else:
                 print("Maximum retries reached. Giving up.")
@@ -436,7 +432,7 @@ if __name__ == '__main__':
         print("Initializing database...")
         database_initialization_sequence()
         print("\n=== STARTING FLASK SERVER ===")
-        app.run(debug=True, host='0.0.0.0')
+        app.run(debug=app.config['DEBUG'], host='0.0.0.0')
     else:
         print("\n❌ FATAL: Could not establish database connection after multiple attempts")
         print("Application will not start")
