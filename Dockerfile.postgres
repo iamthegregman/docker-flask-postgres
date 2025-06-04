@@ -1,0 +1,14 @@
+FROM postgres:17.4-alpine
+
+# Copy any initialization scripts (if you create them later)
+# COPY ./init-scripts/ /docker-entrypoint-initdb.d/
+
+# Set default environment (will be overridden by Cloud Run env vars)
+ENV POSTGRES_DB=reagentdb
+ENV POSTGRES_USER=produser
+
+# Expose PostgreSQL port
+EXPOSE 5432
+
+# Use the standard PostgreSQL entrypoint
+CMD ["postgres"]

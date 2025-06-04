@@ -1,0 +1,4 @@
+app/.env
+.env
+.env.prod
+*.env
