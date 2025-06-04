@@ -1,0 +1,30 @@
+# Use Debian-based Python for better cloud compatibility
+FROM python:3.9-slim
+
+WORKDIR /app
+
+# Install system dependencies (PostgreSQL client for database connections)
+RUN apt-get update && apt-get install -y \
+    postgresql-client \
+    gcc \
+    libpq-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+# Copy and install Python dependencies
+COPY app/requirements.txt .
+RUN pip install --no-cache-dir --upgrade pip setuptools && \
+    pip install --no-cache-dir -r requirements.txt
+
+# Copy application code
+COPY app/ .
+
+# Create non-root user for security
+RUN useradd --create-home --shell /bin/bash appuser && \
+    chown -R appuser:appuser /app
+USER appuser
+
+# Cloud Run expects port 8080
+EXPOSE 8080
+
+# Use Gunicorn for production (versus Flask dev server)
+CMD ["gunicorn", "--bind", "0.0.0.0:8080", "--workers", "2", "--timeout", "120", "app:app"]
