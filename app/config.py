@@ -1,8 +1,13 @@
 import os
 from dotenv import load_dotenv
 
-# Load environment variables from .env file
-load_dotenv(dotenv_path='../.env')
+# Load environment variables - try multiple locations
+if os.path.exists('.env.prod'):
+    load_dotenv('.env.prod')  # Production file in same directory
+elif os.path.exists('../.env'):
+    load_dotenv('../.env')    # Development file in parent directory
+else:
+    load_dotenv()             # Default behavior
 
 
 class Config:
