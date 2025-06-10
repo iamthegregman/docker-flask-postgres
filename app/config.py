@@ -3,11 +3,19 @@ from dotenv import load_dotenv
 
 # Load environment variables - try multiple locations
 if os.path.exists('.env.prod'):
-    load_dotenv('.env.prod')  # Production file in same directory
+    print("Loading .env.prod")
+    load_dotenv('.env.prod')
 elif os.path.exists('../.env'):
-    load_dotenv('../.env')    # Development file in parent directory
+    print("Loading ../.env")
+    load_dotenv('../.env')
 else:
-    load_dotenv()             # Default behavior
+    print("Loading default .env")
+    load_dotenv()
+
+# Add debug output
+print(f"POSTGRES_HOST from env: {os.getenv('POSTGRES_HOST')}")
+print(f"POSTGRES_PORT from env: {os.getenv('POSTGRES_PORT')}")
+
 
 
 class Config:

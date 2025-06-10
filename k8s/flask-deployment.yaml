@@ -1,0 +1,45 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: flask-app
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: flask-app
+  template:
+    metadata:
+      labels:
+        app: flask-app
+    spec:
+      containers:
+      - name: flask
+        image: europe-west2-docker.pkg.dev/weighty-diorama-461616-h5/reagent-flask-trial/flask-app:latest
+        ports:
+        - containerPort: 8080
+        env:
+        - name: POSTGRES_HOST
+          value: "postgres-service"
+        - name: POSTGRES_PORT
+          value: "5432"
+        - name: FLASK_ENV
+          value: "production"
+        - name: DEBUG
+          value: "False"
+        envFrom:
+        - secretRef:
+            name: postgres-secret
+        - secretRef:
+            name: flask-secret
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: flask-service
+spec:
+  selector:
+    app: flask-app
+  ports:
+  - port: 80
+    targetPort: 8080
+  type: LoadBalancer
