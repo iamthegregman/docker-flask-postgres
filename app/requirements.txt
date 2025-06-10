@@ -4,3 +4,4 @@ flask-sqlalchemy
 psycopg2-binary>=2.9.3
 python-dotenv
 gunicorn
+plotly

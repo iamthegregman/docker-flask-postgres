@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Lab Inventory - Quality Control</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/plotly.js/2.26.0/plotly.min.js"></script>
+    <style>
+        .table-hover tbody tr:hover {
+            background-color: rgba(0, 123, 255, 0.1);
+            cursor: pointer;
+        }
+        .qc-summary-card {
+            transition: transform 0.2s;
+        }
+        .qc-summary-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        }
+        .status-badge {
+            font-size: 0.75rem;
+        }
+        #plotContainer {
+            min-height: 500px;
+            background-color: #f8f9fa;
+            border: 2px dashed #dee2e6;
+            border-radius: 0.5rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #6c757d;
+        }
+        .plot-loaded #plotContainer {
+            background-color: white;
+            border: 1px solid #dee2e6;
+            border-radius: 0.5rem;
+        }
+        .loading-spinner {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+        <div class="container">
+            <a class="navbar-brand" href="/">Lab Inventory System</a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav">
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('supplies') }}">Supplies</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('reagents') }}">Reagents</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('locations') }}">Locations</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link active" href="{{ url_for('qc_dashboard') }}">Quality Control</a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container mt-4">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h2>Quality Control Dashboard</h2>
+            <div>
+                <button class="btn btn-primary" onclick="refreshData()">
+                    <i class="bi bi-arrow-clockwise"></i> Refresh Data
+                </button>
+            </div>
+        </div>
+
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ category if category != 'message' else 'info' }} alert-dismissible fade show" role="alert">
+                        {{ message }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                    </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+
+        <!-- Test Selection -->
+        <div class="row mb-4">
+            <div class="col-md-6">
+                <label for="testSelect" class="form-label">Select Test:</label>
+                <select class="form-select" id="testSelect" onchange="loadTestSummary()">
+                    <option value="">Choose a test...</option>
+                    <option value="TEST01">TEST01</option>
+                </select>
+            </div>
+            <div class="col-md-6">
+                <label for="daysSelect" class="form-label">Time Range:</label>
+                <select class="form-select" id="daysSelect" onchange="updatePlot()">
+                    <option value="30">Last 30 days</option>
+                    <option value="60">Last 60 days</option>
+                    <option value="90">Last 90 days</option>
+                    <option value="180">Last 6 months</option>
+                </select>
+            </div>
+        </div>
+
+        <!-- QC Summary Cards -->
+        <div id="summaryCards" class="row mb-4" style="display: none;">
+            <!-- Cards will be populated by JavaScript -->
+        </div>
+
+        <!-- Levey-Jennings Plot -->
+        <div class="card mb-4">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">Levey-Jennings Plot</h5>
+                <div class="loading-spinner">
+                    <div class="spinner-border spinner-border-sm" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                </div>
+            </div>
+            <div class="card-body">
+                <div id="plotContainer">
+                    <div class="text-center">
+                        <i class="bi bi-graph-up fs-1 mb-3"></i>
+                        <p class="mb-0">Select a test and reagent lot to display Levey-Jennings plot</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- QC Data Table -->
+        <div class="card" id="dataTable" style="display: none;">
+            <div class="card-header">
+                <h5 class="mb-0">QC Measurements</h5>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Date</th>
+                                <th>Value</th>
+                                <th>Instrument</th>
+                                <th>User</th>
+                                <th>Coversheet</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody id="dataTableBody">
+                            <!-- Data will be populated by JavaScript -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        let currentTestId = '';
+        let currentReagentLot = '';
+        let currentQcLevel = '';
+
+        async function loadTestSummary() {
+            const testId = document.getElementById('testSelect').value;
+            if (!testId) {
+                document.getElementById('summaryCards').style.display = 'none';
+                clearPlot();
+                return;
+            }
+
+            currentTestId = testId;
+            
+            try {
+                const response = await fetch(`/api/qc-summary/${testId}`);
+                const data = await response.json();
+                
+                if (data.error) {
+                    alert('Error: ' + data.error);
+                    return;
+                }
+
+                displaySummaryCards(data.combinations);
+            } catch (error) {
+                console.error('Error loading test summary:', error);
+                alert('Error loading test summary');
+            }
+        }
+
+        function displaySummaryCards(combinations) {
+            const container = document.getElementById('summaryCards');
+            container.innerHTML = '';
+
+            combinations.forEach(combo => {
+                const card = document.createElement('div');
+                card.className = 'col-md-4 mb-3';
+                card.innerHTML = `
+                    <div class="card qc-summary-card h-100" onclick="selectReagentLot('${combo.reagent_lot_id}', '${combo.qc_level}')">
+                        <div class="card-body">
+                            <h6 class="card-title">${combo.reagent_lot_id} - ${combo.qc_level}</h6>
+                            <p class="card-text">
+                                <small class="text-muted">
+                                    ${combo.measurement_count} measurements<br>
+                                    Latest: ${combo.latest_measurement}
+                                </small>
+                            </p>
+                        </div>
+                    </div>
+                `;
+                container.appendChild(card);
+            });
+
+            container.style.display = 'flex';
+        }
+
+        async function selectReagentLot(reagentLotId, qcLevel) {
+            currentReagentLot = reagentLotId;
+            currentQcLevel = qcLevel;
+            
+            // Highlight selected card
+            document.querySelectorAll('.qc-summary-card').forEach(card => {
+                card.classList.remove('border-primary');
+            });
+            event.currentTarget.classList.add('border-primary');
+
+            await updatePlot();
+            await loadQcData();
+        }
+
+        async function updatePlot() {
+            if (!currentTestId || !currentReagentLot || !currentQcLevel) return;
+
+            const days = document.getElementById('daysSelect').value;
+            showLoading();
+
+            try {
+                const response = await fetch(`/api/levey-jennings-plot/${currentTestId}/${currentReagentLot}/${currentQcLevel}?days=${days}`);
+                const data = await response.json();
+
+                if (data.error) {
+                    alert('Error: ' + data.error);
+                    hideLoading();
+                    return;
+                }
+
+                const plotData = JSON.parse(data.plot);
+                Plotly.newPlot('plotContainer', plotData.data, plotData.layout, {responsive: true});
+                
+                document.body.classList.add('plot-loaded');
+                hideLoading();
+
+            } catch (error) {
+                console.error('Error loading plot:', error);
+                alert('Error loading plot');
+                hideLoading();
+            }
+        }
+
+        async function loadQcData() {
+            if (!currentTestId || !currentReagentLot || !currentQcLevel) return;
+
+            const days = document.getElementById('daysSelect').value;
+
+            try {
+                const response = await fetch(`/api/qc-data/${currentTestId}/${currentReagentLot}/${currentQcLevel}?days=${days}`);
+                const data = await response.json();
+
+                if (data.error) {
+                    console.error('Error loading data:', data.error);
+                    return;
+                }
+
+                displayQcData(data);
+            } catch (error) {
+                console.error('Error loading QC data:', error);
+            }
+        }
+
+        function displayQcData(data) {
+            const tbody = document.getElementById('dataTableBody');
+            tbody.innerHTML = '';
+
+            data.forEach(measurement => {
+                const row = document.createElement('tr');
+                const date = new Date(measurement.measurement_date);
+                const status = getQcStatus(measurement.measurement_value, measurement.target_mean, measurement.target_sd);
+                
+                row.innerHTML = `
+                    <td>${date.toLocaleDateString()} ${date.toLocaleTimeString()}</td>
+                    <td>${measurement.measurement_value}</td>
+                    <td>${measurement.instrument_id || '-'}</td>
+                    <td>${measurement.user_id || '-'}</td>
+                    <td>${measurement.cs_id || '-'}</td>
+                    <td><span class="badge ${status.class} status-badge">${status.text}</span></td>
+                `;
+                tbody.appendChild(row);
+            });
+
+            document.getElementById('dataTable').style.display = 'block';
+        }
+
+        function getQcStatus(value, mean, sd) {
+            const deviation = Math.abs(value - mean);
+            if (deviation > 3 * sd) {
+                return {class: 'bg-danger', text: 'Out of Control'};
+            } else if (deviation > 2 * sd) {
+                return {class: 'bg-warning text-dark', text: 'Warning'};
+            } else {
+                return {class: 'bg-success', text: 'In Control'};
+            }
+        }
+
+        function showLoading() {
+            document.querySelector('.loading-spinner').style.display = 'block';
+        }
+
+        function hideLoading() {
+            document.querySelector('.loading-spinner').style.display = 'none';
+        }
+
+        function clearPlot() {
+            document.getElementById('plotContainer').innerHTML = `
+                <div class="text-center">
+                    <i class="bi bi-graph-up fs-1 mb-3"></i>
+                    <p class="mb-0">Select a test and reagent lot to display Levey-Jennings plot</p>
+                </div>
+            `;
+            document.body.classList.remove('plot-loaded');
+            document.getElementById('dataTable').style.display = 'none';
+        }
+
+        function refreshData() {
+            loadTestSummary();
+        }
+
+        // Initialize page
+        document.addEventListener('DOMContentLoaded', function() {
+            // Auto-select TEST01 if available
+            const testSelect = document.getElementById('testSelect');
+            if (testSelect.querySelector('option[value="TEST01"]')) {
+                testSelect.value = 'TEST01';
+                loadTestSummary();
+            }
+        });
+    </script>
+</body>
+</html>

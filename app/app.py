@@ -3,13 +3,16 @@ import sys
 import os
 import traceback
 from flask import Flask, render_template, flash, redirect, request, url_for
-from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy import exc
 from sqlalchemy import text
 from datetime import datetime
 
 # Import configuration
 from config import config
+
+# Import models and database
+from models import db, Acceptance, Locations, ReagentType, Reagent, ReagentLot, Supplies, SuppliesLots, Users, QCData
+
 
 # Determine which config to use based on environment
 config_name = os.getenv('FLASK_ENV', 'development')
@@ -18,151 +21,8 @@ app_config = config.get(config_name, config['default'])
 app = Flask(__name__)
 app.config.from_object(app_config)
 
-db = SQLAlchemy(app)
-
-
-class Acceptance(db.Model):
-    __tablename__ = 'rdb_v3_tbl_acceptance_testing'
-    
-    accept_code = db.Column(db.Integer, primary_key=True)
-    acceptance_criteria = db.Column(db.String(250))
-    
-    def __repr__(self):
-        return f'<Acceptance {self.acceptance_criteria}>'
-
-class Locations(db.Model):
-    __tablename__ = 'rdb_v3_tbl_locations'
-    
-    location_id = db.Column(db.Integer, primary_key=True)
-    location = db.Column(db.String(250))
-    
-    def __repr__(self):
-        return f'<Location {self.location}>'
-
-# Reagent Type Model
-class ReagentType(db.Model):
-    __tablename__ = 'rdb_v3_tbl_reagent_types'
-    
-    reagent_type_id = db.Column(db.Integer, primary_key=True)
-    reagent_type = db.Column(db.String(255))
-    
-    def __repr__(self):
-        return f'<ReagentType {self.reagent_type}>'
-
-# Reagent Model
-class Reagent(db.Model):
-    __tablename__ = 'rdb_v3_tbl_reagents'
-    
-    reagent_id = db.Column(db.Integer, primary_key=True)
-    test_id = db.Column(db.String(255))
-    reagent_name = db.Column(db.String(255))
-    stability = db.Column(db.Integer)
-    disc = db.Column(db.Boolean)
-    entered_by = db.Column(db.Integer, db.ForeignKey('rdb_v3_tbl_users.user_id'))
-    min_stock = db.Column(db.Integer)
-    current_stock = db.Column(db.Integer)
-    cs_deplete = db.Column(db.Boolean)
-    mandatory = db.Column(db.Boolean)
-    reagent_type = db.Column(db.Integer, db.ForeignKey('rdb_v3_tbl_reagent_types.reagent_type_id'))
-    
-    # Relationships
-    lots = db.relationship('ReagentLot', backref='reagent', lazy=True)
-    reagent_type_info = db.relationship('ReagentType', foreign_keys=[reagent_type])
-
-    def __repr__(self):
-        return f'<Reagent {self.reagent_name}>'
-
-# Reagent Lot Model
-class ReagentLot(db.Model):
-    __tablename__ = 'rdb_v3_tbl_reagent_lots'
-    
-    reagent_lot_id = db.Column(db.Integer, primary_key=True)
-    reagent_id = db.Column(db.Integer, db.ForeignKey('rdb_v3_tbl_reagents.reagent_id'))
-    prep_rec_date = db.Column(db.Date)
-    prep_user = db.Column(db.Integer, db.ForeignKey('rdb_v3_tbl_users.user_id'))
-    lot_no = db.Column(db.String(50))
-    barcode_r = db.Column(db.String(255))
-    exp_date = db.Column(db.Date)
-    in_use_from_date = db.Column(db.Date)
-    in_use_to_date = db.Column(db.Date)
-    disc_date = db.Column(db.Date)
-    comment = db.Column(db.String(255))
-    tested_date = db.Column(db.Date)
-    acceptance = db.Column(db.Integer, db.ForeignKey('rdb_v3_tbl_acceptance_testing.accept_code'))
-    accept_user = db.Column(db.Integer, db.ForeignKey('rdb_v3_tbl_users.user_id'))
-    remedial = db.Column(db.String(255))
-    location = db.Column(db.Integer, db.ForeignKey('rdb_v3_tbl_locations.location_id'))
-    
-    # Relationships
-    acceptance_info = db.relationship('Acceptance', backref='reagent_lots', lazy=True)
-    prep_user_info = db.relationship('Users', foreign_keys=[prep_user], backref='prepared_reagent_lots', lazy=True)
-    accept_user_info = db.relationship('Users', foreign_keys=[accept_user], backref='accepted_reagent_lots', lazy=True)
-    location_info = db.relationship('Locations', backref='reagent_lots', lazy=True)
-
-    def __repr__(self):
-        return f'<ReagentLot {self.lot_no}>'
-
-# Define models for SQL here (probably want to move this into a separate file at some point)
-class Supplies(db.Model):
-    __tablename__ = 'rdb_v3_tbl_supplies'
-    
-    supply_id = db.Column(db.Integer, primary_key=True)
-    supply_name = db.Column(db.String(250))
-    manufacturer = db.Column(db.String(50))
-    product = db.Column(db.String(50))
-    cas = db.Column(db.String(255))
-    type = db.Column(db.String(50))
-    grade = db.Column(db.String(50))
-    purity_quant = db.Column(db.String(50))
-    storage_temp = db.Column(db.String(50))
-    stability = db.Column(db.String(50))
-    comment = db.Column(db.String(250))
-    min_stock = db.Column(db.Integer)
-    supply_current_stock = db.Column(db.Integer)
-    one_shot = db.Column(db.Boolean)
-    
-    # Relationship with lots
-    lots = db.relationship('SuppliesLots', backref='supply', lazy=True)
-    
-    def __repr__(self):
-        return f'<Supply {self.supply_name}>'
-
-class SuppliesLots(db.Model):
-    __tablename__ = 'rdb_v3_tbl_supplies_lots'
-    
-    supply_lot_id = db.Column(db.Integer, primary_key=True)
-    supply_id = db.Column(db.Integer, db.ForeignKey('rdb_v3_tbl_supplies.supply_id'))
-    lot_no = db.Column(db.String(50))
-    barcode_s = db.Column(db.String(255))
-    quant = db.Column(db.String(50))
-    condition = db.Column(db.Boolean)
-    use_by_date = db.Column(db.Date)
-    rec_date = db.Column(db.Date)
-    open_date = db.Column(db.Date)
-    disc_date = db.Column(db.Date)
-    comment = db.Column(db.String(250))
-    accept = db.Column(db.Integer, db.ForeignKey('rdb_v3_tbl_acceptance_testing.accept_code'))
-    entered_by = db.Column(db.Integer, db.ForeignKey('rdb_v3_tbl_users.user_id'))
-    location = db.Column(db.Integer, db.ForeignKey('rdb_v3_tbl_locations.location_id'))
-
-    # Relationships
-    acceptance_info = db.relationship('Acceptance', backref='supplies_lots', lazy=True)
-    location_info = db.relationship('Locations', backref='supplies_lots', lazy=True) 
-    entered_by_user = db.relationship('Users', backref='entered_supplies_lots', lazy=True)
-    
-    def __repr__(self):
-        return f'<SupplyLot {self.lot_no}>'
-
-# Users Model (placeholder - adjust based on your actual users table structure)
-class Users(db.Model):
-    __tablename__ = 'rdb_v3_tbl_users'
-    
-    user_id = db.Column(db.Integer, primary_key=True)
-    username = db.Column(db.String(50))
-    # Add other fields as needed
-    
-    def __repr__(self):
-        return f'<User {self.username}>'
+# Initialize the imported db with your app
+db.init_app(app)
 
 def database_initialization_sequence():
     try:
@@ -347,11 +207,19 @@ def test_db_connection():
         return False
     finally:
         print("=== END DATABASE CONNECTION TEST ===\n")
-        
+
+@app.route('/qc-dashboard')
+def qc_dashboard():
+    return render_template('qc_dashboard.html')
+
 if __name__ == '__main__':
     print("\n=== STARTING APPLICATION ===")
     print(f"Environment: {config_name}")
     print(f"Debug mode: {app.config['DEBUG']}")
+    
+    # Import and register blueprint AFTER database is confirmed working
+    from qc_plots import qc_bp
+    app.register_blueprint(qc_bp)
     
     # Multiple connection attempts with detailed error reporting
     dbstatus = False
