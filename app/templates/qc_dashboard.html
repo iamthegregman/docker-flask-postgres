@@ -31,11 +31,15 @@
             align-items: center;
             justify-content: center;
             color: #6c757d;
+            width: 100%;
+            margin: 0;
+            padding: 0;
         }
         .plot-loaded #plotContainer {
             background-color: white;
             border: 1px solid #dee2e6;
             border-radius: 0.5rem;
+            display: block;
         }
         .loading-spinner {
             display: none;
@@ -89,16 +93,29 @@
             {% endif %}
         {% endwith %}
 
-        <!-- Test Selection -->
+        <!-- Test Selection and Plot Configuration -->
         <div class="row mb-4">
-            <div class="col-md-6">
+            <div class="col-md-3">
                 <label for="testSelect" class="form-label">Select Test:</label>
                 <select class="form-select" id="testSelect" onchange="loadTestSummary()">
                     <option value="">Choose a test...</option>
                     <option value="TEST01">TEST01</option>
                 </select>
             </div>
-            <div class="col-md-6">
+            <div class="col-md-3">
+                <label for="plotTypeSelect" class="form-label">Plot Type:</label>
+                <select class="form-select" id="plotTypeSelect" onchange="updatePlotConfig()">
+                    <option value="single">Single level, Levey-Jennings chart</option>
+                    <option value="multi">Multi-level, Levey-Jennings chart</option>
+                </select>
+            </div>
+            <div class="col-md-3">
+                <label for="lotSelect" class="form-label">Lot Selection:</label>
+                <select class="form-select" id="lotSelect" onchange="updatePlot()" disabled>
+                    <option value="">Select lot...</option>
+                </select>
+            </div>
+            <div class="col-md-3">
                 <label for="daysSelect" class="form-label">Time Range:</label>
                 <select class="form-select" id="daysSelect" onchange="updatePlot()">
                     <option value="30">Last 30 days</option>
@@ -109,9 +126,24 @@
             </div>
         </div>
 
-        <!-- QC Summary Cards -->
+        <!-- QC Summary Cards (only shown for single level mode) -->
         <div id="summaryCards" class="row mb-4" style="display: none;">
             <!-- Cards will be populated by JavaScript -->
+        </div>
+
+        <!-- Multi-level Configuration (only shown for multi-level mode) -->
+        <div id="multiLevelConfig" class="card mb-4" style="display: none;">
+            <div class="card-header">
+                <h6 class="mb-0">Multi-level Configuration</h6>
+            </div>
+            <div class="card-body">
+                <div id="levelSelections">
+                    <!-- Level selections will be populated by JavaScript -->
+                </div>
+                <button class="btn btn-primary mt-3" onclick="generateMultiLevelPlot()">
+                    <i class="bi bi-graph-up"></i> Generate Multi-level Plot
+                </button>
+            </div>
         </div>
 
         <!-- Levey-Jennings Plot -->
@@ -124,8 +156,8 @@
                     </div>
                 </div>
             </div>
-            <div class="card-body">
-                <div id="plotContainer">
+            <div class="card-body p-2">
+                <div id="plotContainer" class="w-100">
                     <div class="text-center">
                         <i class="bi bi-graph-up fs-1 mb-3"></i>
                         <p class="mb-0">Select a test and reagent lot to display Levey-Jennings plot</p>
@@ -166,6 +198,8 @@
         let currentTestId = '';
         let currentReagentLot = '';
         let currentQcLevel = '';
+        let availableCombinations = [];
+        let plotType = 'single';
 
         async function loadTestSummary() {
             const testId = document.getElementById('testSelect').value;
@@ -194,29 +228,111 @@
         }
 
         function displaySummaryCards(combinations) {
+            availableCombinations = combinations;
             const container = document.getElementById('summaryCards');
             container.innerHTML = '';
 
-            combinations.forEach(combo => {
-                const card = document.createElement('div');
-                card.className = 'col-md-4 mb-3';
-                card.innerHTML = `
-                    <div class="card qc-summary-card h-100" onclick="selectReagentLot('${combo.reagent_lot_id}', '${combo.qc_level}')">
-                        <div class="card-body">
-                            <h6 class="card-title">${combo.reagent_lot_id} - ${combo.qc_level}</h6>
-                            <p class="card-text">
-                                <small class="text-muted">
-                                    ${combo.measurement_count} measurements<br>
-                                    Latest: ${combo.latest_measurement}
-                                </small>
-                            </p>
-                        </div>
-                    </div>
-                `;
-                container.appendChild(card);
-            });
+            // Update lot selector
+            updateLotSelector();
 
-            container.style.display = 'flex';
+            if (plotType === 'single') {
+                combinations.forEach(combo => {
+                    const card = document.createElement('div');
+                    card.className = 'col-md-4 mb-3';
+                    card.innerHTML = `
+                        <div class="card qc-summary-card h-100" onclick="selectReagentLot('${combo.reagent_lot_id}', '${combo.qc_level}')">
+                            <div class="card-body">
+                                <h6 class="card-title">${combo.reagent_lot_id} - ${combo.qc_level}</h6>
+                                <p class="card-text">
+                                    <small class="text-muted">
+                                        ${combo.measurement_count} measurements<br>
+                                        Latest: ${combo.latest_measurement}
+                                    </small>
+                                </p>
+                            </div>
+                        </div>
+                    `;
+                    container.appendChild(card);
+                });
+                container.style.display = 'flex';
+            } else {
+                container.style.display = 'none';
+            }
+        }
+
+        function updateLotSelector() {
+            const lotSelect = document.getElementById('lotSelect');
+            lotSelect.innerHTML = '<option value="">Select lot...</option>';
+            
+            // Get unique lots
+            const uniqueLots = [...new Set(availableCombinations.map(combo => combo.reagent_lot_id))];
+            
+            uniqueLots.forEach(lot => {
+                const option = document.createElement('option');
+                option.value = lot;
+                option.textContent = lot;
+                lotSelect.appendChild(option);
+            });
+            
+            if (plotType === 'multi' && currentTestId) {
+                lotSelect.disabled = false;
+            } else {
+                lotSelect.disabled = true;
+            }
+        }
+
+        function updatePlotConfig() {
+            plotType = document.getElementById('plotTypeSelect').value;
+            
+            if (plotType === 'single') {
+                document.getElementById('summaryCards').style.display = availableCombinations.length > 0 ? 'flex' : 'none';
+                document.getElementById('multiLevelConfig').style.display = 'none';
+                document.getElementById('lotSelect').disabled = true;
+            } else {
+                document.getElementById('summaryCards').style.display = 'none';
+                document.getElementById('multiLevelConfig').style.display = currentTestId ? 'block' : 'none';
+                updateLotSelector();
+                updateMultiLevelConfig();
+            }
+            
+            clearPlot();
+        }
+
+        function updateMultiLevelConfig() {
+            if (plotType !== 'multi' || !currentTestId) return;
+            
+            const selectedLot = document.getElementById('lotSelect').value;
+            const container = document.getElementById('levelSelections');
+            container.innerHTML = '';
+            
+            if (!selectedLot) {
+                container.innerHTML = '<p class="text-muted">Please select a lot to configure levels.</p>';
+                return;
+            }
+            
+            // Get levels for selected lot
+            const levelsForLot = availableCombinations
+                .filter(combo => combo.reagent_lot_id === selectedLot)
+                .map(combo => combo.qc_level);
+            
+            if (levelsForLot.length === 0) {
+                container.innerHTML = '<p class="text-muted">No levels found for selected lot.</p>';
+                return;
+            }
+            
+            container.innerHTML = '<h6>Available Levels:</h6>';
+            levelsForLot.forEach(level => {
+                const combo = availableCombinations.find(c => c.reagent_lot_id === selectedLot && c.qc_level === level);
+                const checkDiv = document.createElement('div');
+                checkDiv.className = 'form-check';
+                checkDiv.innerHTML = `
+                    <input class="form-check-input" type="checkbox" value="${level}" id="level_${level}" checked>
+                    <label class="form-check-label" for="level_${level}">
+                        ${level} (${combo.measurement_count} measurements)
+                    </label>
+                `;
+                container.appendChild(checkDiv);
+            });
         }
 
         async function selectReagentLot(reagentLotId, qcLevel) {
@@ -234,8 +350,16 @@
         }
 
         async function updatePlot() {
-            if (!currentTestId || !currentReagentLot || !currentQcLevel) return;
+            if (plotType === 'single') {
+                if (!currentTestId || !currentReagentLot || !currentQcLevel) return;
+                await updateSingleLevelPlot();
+            } else {
+                // Multi-level plot will be triggered by button click
+                return;
+            }
+        }
 
+        async function updateSingleLevelPlot() {
             const days = document.getElementById('daysSelect').value;
             showLoading();
 
@@ -249,8 +373,19 @@
                     return;
                 }
 
+                // Configure plot to use full width
                 const plotData = JSON.parse(data.plot);
-                Plotly.newPlot('plotContainer', plotData.data, plotData.layout, {responsive: true});
+                const config = {
+                    responsive: true,
+                    displayModeBar: true,
+                    displaylogo: false
+                };
+                
+                // Update layout to use full container width
+                plotData.layout.autosize = true;
+                plotData.layout.margin = {l: 60, r: 60, t: 80, b: 50};
+                
+                Plotly.newPlot('plotContainer', plotData.data, plotData.layout, config);
                 
                 document.body.classList.add('plot-loaded');
                 hideLoading();
@@ -260,6 +395,223 @@
                 alert('Error loading plot');
                 hideLoading();
             }
+        }
+
+        async function generateMultiLevelPlot() {
+            const selectedLot = document.getElementById('lotSelect').value;
+            if (!selectedLot) {
+                alert('Please select a lot first.');
+                return;
+            }
+
+            // Get selected levels
+            const selectedLevels = [];
+            document.querySelectorAll('#levelSelections input[type="checkbox"]:checked').forEach(checkbox => {
+                selectedLevels.push(checkbox.value);
+            });
+
+            if (selectedLevels.length === 0) {
+                alert('Please select at least one level.');
+                return;
+            }
+
+            showLoading();
+
+            try {
+                const days = document.getElementById('daysSelect').value;
+                
+                // Fetch data for all selected levels
+                const plotPromises = selectedLevels.map(level => 
+                    fetch(`/api/levey-jennings-plot/${currentTestId}/${selectedLot}/${level}?days=${days}`)
+                        .then(response => response.json())
+                );
+
+                const plotResults = await Promise.all(plotPromises);
+
+                // Check for errors
+                const errors = plotResults.filter(result => result.error);
+                if (errors.length > 0) {
+                    alert('Error loading some plots: ' + errors.map(e => e.error).join(', '));
+                    hideLoading();
+                    return;
+                }
+
+                // Create multi-level plot
+                createMultiLevelPlot(plotResults, selectedLevels, selectedLot);
+                
+                document.body.classList.add('plot-loaded');
+                hideLoading();
+
+            } catch (error) {
+                console.error('Error loading multi-level plot:', error);
+                alert('Error loading multi-level plot');
+                hideLoading();
+            }
+        }
+
+        function createMultiLevelPlot(plotResults, levels, lot) {
+            const traces = [];
+            const annotations = [];
+            const shapes = [];
+            
+            // Calculate subplot positions
+            const numLevels = levels.length;
+            const totalSpacing = 0.225; // 22.5% total spacing (increased from 15%)
+            const spacingBetweenPlots = totalSpacing / (numLevels - 1); // Distribute spacing between plots
+            const availableHeight = 0.85 - totalSpacing; // 85% available height minus total spacing
+            const plotHeight = availableHeight / numLevels; // Height for each plot
+            
+            plotResults.forEach((result, index) => {
+                const plotData = JSON.parse(result.plot);
+                const level = levels[index];
+                
+                // Calculate y-axis domain for this subplot
+                const yTop = 0.95 - (index * (plotHeight + spacingBetweenPlots));
+                const yBottom = yTop - plotHeight;
+                
+                // Process data trace
+                const dataTrace = {...plotData.data[0]};
+                dataTrace.name = `${level} Values`;
+                dataTrace.yaxis = `y${index + 1}`;
+                dataTrace.xaxis = index === numLevels - 1 ? 'x' : `x${index + 1}`;
+                traces.push(dataTrace);
+                
+                // Get control limits from the original plot data
+                const originalData = plotData.data[0];
+                const dates = originalData.x;
+                const values = originalData.y;
+                
+                // Calculate statistics from the data
+                let targetMean, targetSd;
+                if (plotData.layout.title && plotData.layout.title.text) {
+                    // Try to extract from summary if available
+                    targetMean = values.reduce((a, b) => a + b, 0) / values.length;
+                    targetSd = Math.sqrt(values.reduce((sq, n) => sq + Math.pow(n - targetMean, 2), 0) / (values.length - 1));
+                } else {
+                    // Fallback calculation
+                    targetMean = values.reduce((a, b) => a + b, 0) / values.length;
+                    targetSd = Math.sqrt(values.reduce((sq, n) => sq + Math.pow(n - targetMean, 2), 0) / (values.length - 1));
+                }
+                
+                // Create control limit shapes for this subplot
+                const xMin = Math.min(...dates.map(d => new Date(d)));
+                const xMax = Math.max(...dates.map(d => new Date(d)));
+                
+                // Mean line
+                shapes.push({
+                    type: 'line',
+                    x0: xMin, x1: xMax,
+                    y0: targetMean, y1: targetMean,
+                    xref: index === numLevels - 1 ? 'x' : `x${index + 1}`,
+                    yref: `y${index + 1}`,
+                    line: { color: 'green', width: 2, dash: 'solid' }
+                });
+                
+                // +/- 1SD
+                [1, -1].forEach(sign => {
+                    shapes.push({
+                        type: 'line',
+                        x0: xMin, x1: xMax,
+                        y0: targetMean + sign * targetSd, y1: targetMean + sign * targetSd,
+                        xref: index === numLevels - 1 ? 'x' : `x${index + 1}`,
+                        yref: `y${index + 1}`,
+                        line: { color: 'blue', width: 1, dash: 'dash' }
+                    });
+                });
+                
+                // +/- 2SD
+                [2, -2].forEach(sign => {
+                    shapes.push({
+                        type: 'line',
+                        x0: xMin, x1: xMax,
+                        y0: targetMean + sign * targetSd, y1: targetMean + sign * targetSd,
+                        xref: index === numLevels - 1 ? 'x' : `x${index + 1}`,
+                        yref: `y${index + 1}`,
+                        line: { color: 'orange', width: 1, dash: 'dash' }
+                    });
+                });
+                
+                // +/- 3SD
+                [3, -3].forEach(sign => {
+                    shapes.push({
+                        type: 'line',
+                        x0: xMin, x1: xMax,
+                        y0: targetMean + sign * targetSd, y1: targetMean + sign * targetSd,
+                        xref: index === numLevels - 1 ? 'x' : `x${index + 1}`,
+                        yref: `y${index + 1}`,
+                        line: { color: 'red', width: 2, dash: 'dash' }
+                    });
+                });
+                
+                // Add level annotation with background box
+                annotations.push({
+                    text: `<b>${level}</b>`,
+                    xref: 'paper', yref: 'paper',
+                    x: 0.02, y: yTop - 0.02,
+                    showarrow: false,
+                    font: { size: 14, color: 'black' },
+                    bgcolor: 'rgba(255, 255, 255, 0.8)',
+                    bordercolor: 'rgba(0, 0, 0, 0.3)',
+                    borderwidth: 1,
+                    borderpad: 4
+                });
+            });
+            
+            // Create layout with multiple y-axes
+            const layout = {
+                title: `Multi-level Levey-Jennings Plot: ${currentTestId} - ${lot}`,
+                height: Math.max(400, 200 * numLevels + 100),
+                showlegend: true,
+                autosize: true,
+                margin: { l: 60, r: 60, t: 80, b: 50 },
+                shapes: shapes,
+                annotations: annotations
+            };
+            
+            // Configure axes
+            levels.forEach((level, index) => {
+                const yTop = 0.95 - (index * (plotHeight + spacingBetweenPlots));
+                const yBottom = yTop - plotHeight;
+                
+                // Y-axis for this subplot
+                const yAxisKey = `yaxis${index + 1}`;
+                layout[yAxisKey] = {
+                    domain: [yBottom, yTop],
+                    title: 'Measurement Value',
+                    showgrid: true,
+                    gridcolor: 'lightgray'
+                };
+                
+                // X-axis configuration
+                if (index === numLevels - 1) {
+                    // Bottom subplot gets the main x-axis with title and labels
+                    layout.xaxis = {
+                        domain: [0, 1],
+                        title: 'Date',
+                        showgrid: true,
+                        gridcolor: 'lightgray',
+                        showticklabels: true
+                    };
+                } else {
+                    // Other subplots get x-axes without labels or title
+                    const xAxisKey = `xaxis${index + 1}`;
+                    layout[xAxisKey] = {
+                        domain: [0, 1],
+                        showticklabels: false,
+                        showgrid: true,
+                        gridcolor: 'lightgray',
+                        title: '' // No title for non-bottom axes
+                    };
+                }
+            });
+            
+            const config = {
+                responsive: true,
+                displayModeBar: true,
+                displaylogo: false
+            };
+            
+            Plotly.newPlot('plotContainer', traces, layout, config);
         }
 
         async function loadQcData() {
@@ -347,6 +699,11 @@
                 testSelect.value = 'TEST01';
                 loadTestSummary();
             }
+
+            // Add event listener for lot selection
+            document.getElementById('lotSelect').addEventListener('change', function() {
+                updateMultiLevelConfig();
+            });
         });
     </script>
 </body>
