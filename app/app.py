@@ -212,14 +212,14 @@ def test_db_connection():
 def qc_dashboard():
     return render_template('qc_dashboard.html')
 
+# moved out of main
+from qc_plots import qc_bp
+app.register_blueprint(qc_bp)
+
 if __name__ == '__main__':
     print("\n=== STARTING APPLICATION ===")
     print(f"Environment: {config_name}")
     print(f"Debug mode: {app.config['DEBUG']}")
-    
-    # Import and register blueprint AFTER database is confirmed working
-    from qc_plots import qc_bp
-    app.register_blueprint(qc_bp)
     
     # Multiple connection attempts with detailed error reporting
     dbstatus = False
