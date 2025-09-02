@@ -2,7 +2,7 @@ import time
 import sys
 import os
 import traceback
-from flask import Flask, render_template, flash, redirect, request, url_for
+from flask import Flask, jsonify, render_template, flash, redirect, request, url_for
 from sqlalchemy import exc
 from sqlalchemy import text
 from datetime import datetime
@@ -11,7 +11,7 @@ from datetime import datetime
 from config import config
 
 # Import models and database
-from models import db, Acceptance, Locations, ReagentType, Reagent, ReagentLot, Supplies, SuppliesLots, Users, QCData
+from models import db, Acceptance, Locations, ReagentType, Reagent, ReagentLot, Supplies, SuppliesLots, Users, QCData, ScannerTest
 
 
 # Determine which config to use based on environment
@@ -215,6 +215,83 @@ def qc_dashboard():
 # moved out of main
 from qc_plots import qc_bp
 app.register_blueprint(qc_bp)
+
+# Scanner application test
+@app.route('/scanner_test')
+def scanner_test():
+    """Display the barcode scanner test page"""
+    return render_template('scanner_test.html')
+
+@app.route('/save_scan', methods=['POST'])
+def save_scan():
+    """Save scanned barcode to test table"""
+    try:
+        data = request.get_json()
+        
+        # Create new scan record
+        new_scan = ScannerTest(
+            scanned_code=data.get('scanned_code'),
+            scan_type=data.get('scan_type', 'camera'),
+            notes=data.get('notes', '')
+        )
+        
+        db.session.add(new_scan)
+        db.session.commit()
+        
+        return jsonify({
+            'success': True, 
+            'message': 'Barcode saved successfully',
+            'scan_id': new_scan.scan_id
+        })
+        
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({
+            'success': False, 
+            'message': f'Error saving scan: {str(e)}'
+        }), 500
+
+@app.route('/scan_history')
+def scan_history():
+    """View all scanned barcodes"""
+    scans = ScannerTest.query.order_by(ScannerTest.scan_timestamp.desc()).all()
+    return render_template('scan_history.html', scans=scans)
+
+@app.route('/test-static')
+def test_static():
+    """Test that static files are being served correctly"""
+    return '''
+    <html>
+        <head>
+            <title>Static Files Test</title>
+            <link href="/static/css/bootstrap.min.css" rel="stylesheet">
+        </head>
+        <body>
+            <div class="container mt-5">
+                <div class="alert alert-success">
+                    <h4>✅ Static Files Test</h4>
+                    <p>If this page is styled with Bootstrap, your static files are working!</p>
+                    <button class="btn btn-primary">Test Button</button>
+                    <a href="/" class="btn btn-secondary">Back to Main App</a>
+                </div>
+            </div>
+            <script src="/static/js/lib/bootstrap.bundle.min.js"></script>
+            <script src="/static/js/lib/html5-qrcode.min.js"></script>
+            <script>
+                console.log('Html5Qrcode available:', typeof Html5Qrcode !== 'undefined');
+                console.log('Html5QrcodeScanner available:', typeof Html5QrcodeScanner !== 'undefined');
+                if (typeof Html5Qrcode !== 'undefined') {
+                    document.querySelector('.alert').innerHTML += '<p><strong>🎉 QR Scanner library loaded successfully!</strong></p>';
+                } else {
+                    document.querySelector('.alert').className = 'alert alert-danger';
+                    document.querySelector('.alert').innerHTML += '<p><strong>❌ QR Scanner library failed to load</strong></p>';
+                }
+            </script>
+        </body>
+    </html>
+    '''
+
+
 
 if __name__ == '__main__':
     print("\n=== STARTING APPLICATION ===")

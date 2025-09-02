@@ -180,3 +180,17 @@ class QCData(db.Model):
     
     def __repr__(self):
         return f'<QCData {self.test_id}-{self.qc_level}: {self.measurement_value}>'
+
+#Test for scanner application
+class ScannerTest(db.Model):
+    """Test table for barcode scanning trials"""
+    __tablename__ = 'rdb_v3_tbl_scanner_test'
+    
+    scan_id = db.Column(db.Integer, primary_key=True)
+    scanned_code = db.Column(db.String(255), nullable=False)
+    scan_timestamp = db.Column(db.DateTime, default=db.func.current_timestamp())
+    scan_type = db.Column(db.String(50))  # 'camera' or 'file'
+    notes = db.Column(db.String(500))
+    
+    def __repr__(self):
+        return f'<ScannerTest {self.scan_id}: {self.scanned_code}>'

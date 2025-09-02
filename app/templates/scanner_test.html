@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Barcode Scanner Test - Lab Management</title>
+    <link href="{{ url_for('static', filename='css/bootstrap.min.css') }}" rel="stylesheet">
+    <script src="{{ url_for('static', filename='js/lib/html5-qrcode.min.js') }}" type="text/javascript"></script>
+    <style>
+        .scanner-container {
+            max-width: 600px;
+            margin: 0 auto;
+        }
+        
+        .scan-result {
+            margin: 20px 0;
+            padding: 15px;
+            background-color: #f8f9fa;
+            border-radius: 5px;
+            border-left: 4px solid #28a745;
+        }
+        
+        .scan-history {
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        
+        #reader {
+            border: 2px solid #dee2e6;
+            border-radius: 8px;
+            margin: 20px 0;
+        }
+        
+        .control-buttons {
+            margin: 10px 0;
+        }
+        
+        .alert-custom {
+            margin: 10px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container mt-4">
+        <div class="row">
+            <div class="col-md-8 offset-md-2">
+                <div class="card">
+                    <div class="card-header bg-primary text-white">
+                        <h3 class="mb-0">🔍 Barcode Scanner Test</h3>
+                    </div>
+                    <div class="card-body">
+                        
+                        <!-- Scanner Controls -->
+                        <div class="control-buttons text-center">
+                            <button id="start-camera-btn" class="btn btn-success me-2">Start Camera Scanner</button>
+                            <button id="stop-camera-btn" class="btn btn-danger me-2" disabled>Stop Scanner</button>
+                            <a href="/scan_history" class="btn btn-info">View History</a>
+                        </div>
+                        
+                        <!-- Alert area for messages -->
+                        <div id="alert-area"></div>
+                        
+                        <!-- Scanner Container -->
+                        <div class="scanner-container">
+                            <div id="reader"></div>
+                        </div>
+                        
+                        <!-- File Upload Scanner -->
+                        <div class="mt-4">
+                            <h5>Or scan from image file:</h5>
+                            <div class="mb-3">
+                                <input type="file" id="qr-input-file" class="form-control" accept="image/*">
+                            </div>
+                        </div>
+                        
+                        <!-- Last Scan Result -->
+                        <div id="last-scan-result" style="display: none;">
+                            <h5>Last Scanned Code:</h5>
+                            <div class="scan-result">
+                                <strong>Code:</strong> <span id="scanned-code-text"></span><br>
+                                <strong>Time:</strong> <span id="scan-time"></span><br>
+                                <strong>Status:</strong> <span id="save-status"></span>
+                            </div>
+                        </div>
+                        
+                        <!-- Recent Scans -->
+                        <div class="mt-4">
+                            <h5>Recent Scans (This Session):</h5>
+                            <div id="recent-scans" class="scan-history">
+                                <p class="text-muted">No scans yet...</p>
+                            </div>
+                        </div>
+                        
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bootstrap JS -->
+    <script src="{{ url_for('static', filename='js/lib/bootstrap.bundle.min.js') }}"></script>
+    
+    <script>
+        let html5QrcodeScanner = null;
+        let isScanning = false;
+        let recentScans = [];
+
+        // DOM elements
+        const startBtn = document.getElementById('start-camera-btn');
+        const stopBtn = document.getElementById('stop-camera-btn');
+        const alertArea = document.getElementById('alert-area');
+        const lastScanResult = document.getElementById('last-scan-result');
+        const fileInput = document.getElementById('qr-input-file');
+        const recentScansDiv = document.getElementById('recent-scans');
+
+        // Scanner success callback
+        function onScanSuccess(decodedText, decodedResult) {
+            console.log(`Code matched = ${decodedText}`, decodedResult);
+            
+            // Display the result
+            displayScanResult(decodedText, 'camera');
+            
+            // Save to backend
+            saveScanToBackend(decodedText, 'camera');
+            
+            // Add to recent scans
+            addToRecentScans(decodedText, 'camera');
+        }
+
+        // Scanner failure callback
+        function onScanFailure(error) {
+            // Handle scan failure - usually better to ignore and keep scanning
+            console.warn(`Code scan error = ${error}`);
+        }
+
+        // Start camera scanner
+        function startCameraScanner() {
+            if (isScanning) return;
+            
+            html5QrcodeScanner = new Html5QrcodeScanner(
+                "reader",
+                { 
+                    fps: 10, 
+                    qrbox: {width: 250, height: 250},
+                    rememberLastUsedCamera: true
+                },
+                false
+            );
+            
+            html5QrcodeScanner.render(onScanSuccess, onScanFailure);
+            
+            isScanning = true;
+            startBtn.disabled = true;
+            stopBtn.disabled = false;
+            
+            showAlert('Camera scanner started', 'success');
+        }
+
+        // Stop camera scanner
+        function stopCameraScanner() {
+            if (!isScanning || !html5QrcodeScanner) return;
+            
+            html5QrcodeScanner.clear().then(ignore => {
+                isScanning = false;
+                startBtn.disabled = false;
+                stopBtn.disabled = true;
+                showAlert('Camera scanner stopped', 'info');
+            }).catch(err => {
+                console.error('Error stopping scanner:', err);
+                showAlert('Error stopping scanner', 'danger');
+            });
+        }
+
+        // Display scan result
+        function displayScanResult(code, scanType) {
+            document.getElementById('scanned-code-text').textContent = code;
+            document.getElementById('scan-time').textContent = new Date().toLocaleString();
+            document.getElementById('save-status').textContent = 'Saving...';
+            lastScanResult.style.display = 'block';
+        }
+
+        // Save scan to backend
+        async function saveScanToBackend(code, scanType, notes = '') {
+            try {
+                const response = await fetch('/save_scan', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        scanned_code: code,
+                        scan_type: scanType,
+                        notes: notes
+                    })
+                });
+
+                const result = await response.json();
+                
+                if (result.success) {
+                    document.getElementById('save-status').textContent = `✅ Saved (ID: ${result.scan_id})`;
+                    showAlert(`Barcode saved successfully! ID: ${result.scan_id}`, 'success');
+                } else {
+                    document.getElementById('save-status').textContent = '❌ Save failed';
+                    showAlert(`Error: ${result.message}`, 'danger');
+                }
+            } catch (error) {
+                console.error('Error saving scan:', error);
+                document.getElementById('save-status').textContent = '❌ Save failed';
+                showAlert('Network error saving scan', 'danger');
+            }
+        }
+
+        // Add to recent scans display
+        function addToRecentScans(code, scanType) {
+            const timestamp = new Date().toLocaleString();
+            recentScans.unshift({code, scanType, timestamp});
+            
+            // Keep only last 10 scans
+            if (recentScans.length > 10) {
+                recentScans = recentScans.slice(0, 10);
+            }
+            
+            updateRecentScansDisplay();
+        }
+
+        // Update recent scans display
+        function updateRecentScansDisplay() {
+            if (recentScans.length === 0) {
+                recentScansDiv.innerHTML = '<p class="text-muted">No scans yet...</p>';
+                return;
+            }
+            
+            let html = '';
+            recentScans.forEach((scan, index) => {
+                html += `
+                    <div class="border-bottom pb-2 mb-2">
+                        <strong>${scan.code}</strong><br>
+                        <small class="text-muted">${scan.scanType} • ${scan.timestamp}</small>
+                    </div>
+                `;
+            });
+            
+            recentScansDiv.innerHTML = html;
+        }
+
+        // Show alert message
+        function showAlert(message, type) {
+            const alertHtml = `
+                <div class="alert alert-${type} alert-dismissible fade show alert-custom" role="alert">
+                    ${message}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+            `;
+            alertArea.innerHTML = alertHtml;
+            
+            // Auto-dismiss success and info alerts after 3 seconds
+            if (type === 'success' || type === 'info') {
+                setTimeout(() => {
+                    const alert = alertArea.querySelector('.alert');
+                    if (alert) {
+                        alert.classList.remove('show');
+                        setTimeout(() => alert.remove(), 150);
+                    }
+                }, 3000);
+            }
+        }
+
+        // File input handler for image scanning
+        fileInput.addEventListener('change', async (e) => {
+            if (e.target.files.length === 0) return;
+            
+            const imageFile = e.target.files[0];
+            
+            try {
+                // Create a temporary Html5Qrcode instance for file scanning
+                const html5QrCode = new Html5Qrcode("reader");
+                
+                const decodedText = await html5QrCode.scanFile(imageFile, true);
+                
+                console.log('File scan result:', decodedText);
+                displayScanResult(decodedText, 'file');
+                saveScanToBackend(decodedText, 'file');
+                addToRecentScans(decodedText, 'file');
+                
+                // Clear the file input
+                fileInput.value = '';
+                
+            } catch (err) {
+                console.error('Error scanning file:', err);
+                showAlert(`Error scanning file: ${err}`, 'danger');
+                fileInput.value = '';
+            }
+        });
+
+        // Event listeners
+        startBtn.addEventListener('click', startCameraScanner);
+        stopBtn.addEventListener('click', stopCameraScanner);
+
+        // Clean up on page unload
+        window.addEventListener('beforeunload', () => {
+            if (isScanning && html5QrcodeScanner) {
+                html5QrcodeScanner.clear();
+            }
+        });
+
+        // Show initial message
+        showAlert('Ready to scan! Click "Start Camera Scanner" to begin.', 'info');
+    </script>
+</body>
+</html>

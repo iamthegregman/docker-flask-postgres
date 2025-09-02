@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Scan History - Lab Management</title>
+    <link href="{{ url_for('static', filename='css/bootstrap.min.css') }}" rel="stylesheet">
+</head>
+<body>
+    <div class="container mt-4">
+        <div class="row">
+            <div class="col-md-10 offset-md-1">
+                <div class="card">
+                    <div class="card-header bg-info text-white d-flex justify-content-between align-items-center">
+                        <h3 class="mb-0">📋 Scan History</h3>
+                        <a href="/scanner_test" class="btn btn-light btn-sm">Back to Scanner</a>
+                    </div>
+                    <div class="card-body">
+                        
+                        {% if scans %}
+                            <p class="text-muted">Total scans: {{ scans|length }}</p>
+                            
+                            <div class="table-responsive">
+                                <table class="table table-striped table-hover">
+                                    <thead class="table-dark">
+                                        <tr>
+                                            <th>ID</th>
+                                            <th>Scanned Code</th>
+                                            <th>Scan Type</th>
+                                            <th>Timestamp</th>
+                                            <th>Notes</th>
+                                            <th>Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for scan in scans %}
+                                        <tr>
+                                            <td><span class="badge bg-secondary">{{ scan.scan_id }}</span></td>
+                                            <td>
+                                                <code class="bg-light px-2 py-1 rounded">{{ scan.scanned_code }}</code>
+                                            </td>
+                                            <td>
+                                                {% if scan.scan_type == 'camera' %}
+                                                    <span class="badge bg-success">📷 Camera</span>
+                                                {% elif scan.scan_type == 'file' %}
+                                                    <span class="badge bg-primary">📁 File</span>
+                                                {% else %}
+                                                    <span class="badge bg-secondary">{{ scan.scan_type }}</span>
+                                                {% endif %}
+                                            </td>
+                                            <td class="text-nowrap">
+                                                <small>{{ scan.scan_timestamp.strftime('%Y-%m-%d %H:%M:%S') }}</small>
+                                            </td>
+                                            <td>
+                                                {% if scan.notes %}
+                                                    <span class="text-truncate" style="max-width: 150px; display: inline-block;" title="{{ scan.notes }}">
+                                                        {{ scan.notes }}
+                                                    </span>
+                                                {% else %}
+                                                    <span class="text-muted">-</span>
+                                                {% endif %}
+                                            </td>
+                                            <td>
+                                                <button class="btn btn-sm btn-outline-primary" 
+                                                        onclick="copyToClipboard('{{ scan.scanned_code }}')"
+                                                        title="Copy code">
+                                                    📋
+                                                </button>
+                                                <button class="btn btn-sm btn-outline-danger" 
+                                                        onclick="deleteSccan({{ scan.scan_id }})"
+                                                        title="Delete scan">
+                                                    🗑️
+                                                </button>
+                                            </td>
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                            
+                            <!-- Summary Statistics -->
+                            <div class="row mt-4">
+                                <div class="col-md-6">
+                                    <div class="card bg-light">
+                                        <div class="card-body text-center">
+                                            <h5>📷 Camera Scans</h5>
+                                            <h3 class="text-success">
+                                                {{ scans | selectattr('scan_type', 'equalto', 'camera') | list | length }}
+                                            </h3>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="card bg-light">
+                                        <div class="card-body text-center">
+                                            <h5>📁 File Scans</h5>
+                                            <h3 class="text-primary">
+                                                {{ scans | selectattr('scan_type', 'equalto', 'file') | list | length }}
+                                            </h3>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                        {% else %}
+                            <div class="text-center py-5">
+                                <h4 class="text-muted">No scans yet</h4>
+                                <p class="text-muted">Start scanning some barcodes to see them here!</p>
+                                <a href="/scanner_test" class="btn btn-primary">Go to Scanner</a>
+                            </div>
+                        {% endif %}
+                        
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bootstrap JS -->
+    <script src="{{ url_for('static', filename='js/lib/bootstrap.bundle.min.js') }}"></script>
+    
+    <script>
+        // Copy barcode to clipboard
+        async function copyToClipboard(text) {
+            try {
+                await navigator.clipboard.writeText(text);
+                
+                // Show temporary success message
+                const toast = document.createElement('div');
+                toast.className = 'toast show position-fixed top-0 end-0 m-3';
+                toast.innerHTML = `
+                    <div class="toast-header bg-success text-white">
+                        <strong class="me-auto">✅ Copied!</strong>
+                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="toast"></button>
+                    </div>
+                    <div class="toast-body">
+                        Barcode copied to clipboard: <code>${text}</code>
+                    </div>
+                `;
+                document.body.appendChild(toast);
+                
+                // Auto-remove after 3 seconds
+                setTimeout(() => {
+                    toast.remove();
+                }, 3000);
+                
+            } catch (err) {
+                alert('Failed to copy to clipboard');
+            }
+        }
+
+        // Delete scan (placeholder - you'd need to implement the backend route)
+        function deleteScan(scanId) {
+            if (confirm('Are you sure you want to delete this scan?')) {
+                // You would implement a DELETE endpoint here
+                fetch(`/delete_scan/${scanId}`, {
+                    method: 'DELETE',
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        location.reload();
+                    } else {
+                        alert('Error deleting scan');
+                    }
+                })
+                .catch(err => {
+                    console.error('Error:', err);
+                    alert('Error deleting scan');
+                });
+            }
+        }
+    </script>
+</body>
+</html>
